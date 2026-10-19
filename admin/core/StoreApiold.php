@@ -6,13 +6,13 @@ require_once __DIR__ . "/../../includes/config.php";
 
 class StoreApiold
 {
-    public static function getStoreApi(string $instanceId): ?array
+    public static function getStoreApi(string $shopId): ?array
     {
         global $pdo;
         $stmt = $pdo->prepare("
-            SELECT * FROM SquarespaceSite WHERE instance_id = ? LIMIT 1
+            SELECT * FROM SquarespaceSite WHERE shop_id = ? LIMIT 1
         ");
-        $stmt->execute([$instanceId]);
+        $stmt->execute([$shopId]);
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 }

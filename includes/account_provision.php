@@ -152,14 +152,14 @@ if (!function_exists('provisionInstance')) {
      * like every family app) — the existing row is reactivated and its
      * squarespace site_id refreshed.
      *
-     * @return array{instance_id:string, created:bool}
+     * @return array{shop_id:string, created:bool}
      */
     function provisionInstance(PDO $pdo, string $email, string $domain, array $verified): array
     {
-        $instanceId = gscUuidV4();
+        $shopId = gscUuidV4();
         $siteUrl    = 'https://' . $domain;
 
-        $stmt = $pdo->prepare("SELECT id, instance_id, is_active FROM SquarespaceSite WHERE domain = ? LIMIT 1");
+        $stmt = $pdo->prepare("SELECT id, shop_id, is_active FROM SquarespaceSite WHERE domain = ? LIMIT 1");
         $stmt->execute([$domain]);
         $existing = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -183,18 +183,18 @@ if (!function_exists('provisionInstance')) {
                 ':name'  => $verified['title'],
                 ':id'    => (int) $existing['id'],
             ]);
-            return ['instance_id' => (string) $existing['instance_id'], 'created' => false];
+            return ['shop_id' => (string) $existing['shop_id'], 'created' => false];
         }
 
         $ins = $pdo->prepare("
             INSERT INTO SquarespaceSite
-                (instance_id, site_id, site_url, site_display_name, domain,
+                (shop_id, site_id, site_url, site_display_name, domain,
                  owner_email, is_active, is_verified, site_verified_at, created_at, updated_at)
             VALUES
                 (:iid, :sid, :url, :name, :dom, :email, 1, 1, NOW(), NOW(), NOW())
         ");
         $ins->execute([
-            ':iid'  => $instanceId,
+            ':iid'  => $shopId,
             ':sid'  => $verified['site_id'],
             ':url'  => $siteUrl,
             ':name' => $verified['title'],
@@ -202,7 +202,7 @@ if (!function_exists('provisionInstance')) {
             ':email' => $email,
         ]);
 
-        return ['instance_id' => $instanceId, 'created' => true];
+        return ['shop_id' => $shopId, 'created' => true];
     }
 }
 
@@ -213,14 +213,14 @@ if (!function_exists('createMagicToken')) {
      * Stores a single-use token (hash at rest, 30-minute expiry) and
      * returns the plaintext token for the emailed link.
      */
-    function createMagicToken(PDO $pdo, string $email, string $instanceId): string
+    function createMagicToken(PDO $pdo, string $email, string $shopId): string
     {
         $token = bin2hex(random_bytes(24));
         $stmt = $pdo->prepare("
-            INSERT INTO gsc_magic_links (email, instance_id, token_hash, purpose, expires_at)
+            INSERT INTO gsc_magic_links (email, shop_id, token_hash, purpose, expires_at)
             VALUES (?, ?, ?, 'login', DATE_ADD(NOW(), INTERVAL 30 MINUTE))
         ");
-        $stmt->execute([$email, $instanceId !== '' ? $instanceId : null, hash('sha256', $token)]);
+        $stmt->execute([$email, $shopId !== '' ? $shopId : null, hash('sha256', $token)]);
         return $token;
     }
 }
@@ -245,7 +245,7 @@ if (!function_exists('findInstanceByEmail')) {
     function findInstanceByEmail(PDO $pdo, string $email): ?array
     {
         $stmt = $pdo->prepare("
-            SELECT instance_id, domain, site_url, site_display_name, is_verified
+            SELECT shop_id, domain, site_url, site_display_name, is_verified
             FROM SquarespaceSite
             WHERE owner_email = ? AND is_active = 1
             ORDER BY id DESC
@@ -266,7 +266,7 @@ if (!function_exists('consumeMagicToken')) {
     {
         $hash = hash('sha256', $token);
         $stmt = $pdo->prepare("
-            SELECT ml.id, ml.email, ml.instance_id
+            SELECT ml.id, ml.email, ml.shop_id
             FROM gsc_magic_links ml
             WHERE ml.token_hash = ?
               AND ml.used_at IS NULL
@@ -283,12 +283,12 @@ if (!function_exists('consumeMagicToken')) {
             ->execute([(int) $link['id']]);
 
         $stmt = $pdo->prepare("
-            SELECT instance_id, domain, site_url, site_display_name, owner_email AS email, is_verified
+            SELECT shop_id, domain, site_url, site_display_name, owner_email AS email, is_verified
             FROM SquarespaceSite
-            WHERE instance_id = ? AND is_active = 1
+            WHERE shop_id = ? AND is_active = 1
             LIMIT 1
         ");
-        $stmt->execute([(string) $link['instance_id']]);
+        $stmt->execute([(string) $link['shop_id']]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
     }

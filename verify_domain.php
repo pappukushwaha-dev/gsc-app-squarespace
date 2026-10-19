@@ -13,9 +13,9 @@ require_once __DIR__ . '/includes/credentials.php';
 require_once __DIR__ . '/includes/google/get_account.php';
 require_once __DIR__ . '/includes/google/token_manager.php';
 
-$instanceId = $_SESSION['instanceid'] ?? null;
+$shopId = $_SESSION['shop_id'] ?? null;
 
-if (!$instanceId) {
+if (!$shopId) {
     echo json_encode(['success' => false, 'error' => 'missing_instance']);
     exit;
 }

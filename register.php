@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $verified = squarespaceVerifySite($domain);
         $res      = provisionInstance($pdo, $email, $domain, $verified);
 
-        $token = createMagicToken($pdo, $email, $res['instance_id']);
+        $token = createMagicToken($pdo, $email, $res['shop_id']);
         if (!sendMagicLink($email, $token)) {
             throw new AccountProvisionException('We could not send the sign-in email right now. Please try again in a minute.');
         }

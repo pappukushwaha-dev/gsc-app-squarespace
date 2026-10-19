@@ -19,10 +19,10 @@ if (!isset($_SESSION["user_id"]) && !isset($_SESSION["admin_logged_in"])) {
 
 $stores = [];
 $stmt = $pdo->prepare("
-    SELECT s.instance_id, s.site_url, s.site_display_name, s.is_active, s.created_at,
+    SELECT s.shop_id, s.site_url, s.site_display_name, s.is_active, s.created_at,
            a.plan_name, a.status as sub_status
     FROM SquarespaceSite s
-    LEFT JOIN app_subscriptions a ON a.instance_id = s.instance_id
+    LEFT JOIN app_subscriptions a ON a.shop_id = s.shop_id
     WHERE a.status = 'active'
     ORDER BY s.created_at DESC
 ");
@@ -59,7 +59,7 @@ $stores = $stmt->fetchAll(PDO::FETCH_ASSOC) ?? [];
                 <?php else: ?>
                 <?php foreach ($stores as $store): ?>
                 <tr class="border-b border-neutral-100 dark:border-neutral-700">
-                    <td class="px-6 py-4 text-sm font-mono text-neutral-800 dark:text-neutral-200"><?= htmlspecialchars($store["instance_id"] ?? "") ?></td>
+                    <td class="px-6 py-4 text-sm font-mono text-neutral-800 dark:text-neutral-200"><?= htmlspecialchars($store["shop_id"] ?? "") ?></td>
                     <td class="px-6 py-4 text-sm text-neutral-800 dark:text-neutral-200"><?= htmlspecialchars($store["site_url"] ?? "") ?></td>
                     <td class="px-6 py-4 text-sm text-neutral-800 dark:text-neutral-200"><?= htmlspecialchars($store["plan_name"] ?? "-") ?></td>
                     <td class="px-6 py-4 text-sm">

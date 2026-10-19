@@ -33,7 +33,7 @@ $activeStores = array_filter($stores, fn($s) => !empty($s['is_active']));
     <tbody>
         <?php foreach ($activeStores as $store): ?>
         <tr class="border-b">
-            <td class="px-4 py-2 font-mono text-sm"><?= htmlspecialchars($store['instance_id']) ?></td>
+            <td class="px-4 py-2 font-mono text-sm"><?= htmlspecialchars($store['shop_id']) ?></td>
             <td class="px-4 py-2"><?= htmlspecialchars($store['site_url']) ?></td>
             <td class="px-4 py-2"><?= htmlspecialchars($store['site_display_name'] ?? '-') ?></td>
             <td class="px-4 py-2"><?= htmlspecialchars($store['created_at'] ?? '-') ?></td>

@@ -3,15 +3,15 @@
 declare(strict_types=1);
 
 if (!function_exists('checkTrialStatus')) {
-    function checkTrialStatus(string $instanceId): array
+    function checkTrialStatus(string $shopId): array
     {
         global $pdo;
         $stmt = $pdo->prepare("
             SELECT status, expires_on FROM app_free_trials
-            WHERE instance_id = ? AND status = 'active'
+            WHERE shop_id = ? AND status = 'active'
             ORDER BY started_at DESC LIMIT 1
         ");
-        $stmt->execute([$instanceId]);
+        $stmt->execute([$shopId]);
         $trial = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$trial) {

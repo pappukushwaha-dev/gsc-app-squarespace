@@ -23,7 +23,7 @@ SET @s := IF((SELECT COUNT(*) FROM information_schema.TABLES
   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'other_app_clicks') = 0,
   'CREATE TABLE other_app_clicks (
     id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    instance_id    VARCHAR(191) NOT NULL DEFAULT '' '',
+    shop_id    VARCHAR(191) NOT NULL DEFAULT '' '',
     email          VARCHAR(320) NOT NULL DEFAULT '' '',
     other_app_id   INT UNSIGNED NOT NULL DEFAULT 0,
     app_name       VARCHAR(191) NOT NULL DEFAULT '' '',
@@ -31,7 +31,7 @@ SET @s := IF((SELECT COUNT(*) FROM information_schema.TABLES
     clicked_at     TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_app_time (other_app_id, clicked_at),
-    KEY idx_instance (instance_id),
+    KEY idx_instance (shop_id),
     KEY idx_clicked_at (clicked_at)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
   'SELECT ''other_app_clicks already present'' AS note');

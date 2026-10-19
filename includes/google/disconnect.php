@@ -11,16 +11,16 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/credentials.php';
 
-$instanceId = $_SESSION['instanceid'] ?? null;
+$shopId = $_SESSION['shop_id'] ?? null;
 
-if (!$instanceId) {
+if (!$shopId) {
     echo json_encode(['success' => false, 'error' => 'missing_instance']);
     exit;
 }
 
 global $pdo;
-$pdo->prepare("UPDATE google_accounts SET connected = 0, access_token = NULL, refresh_token = NULL WHERE instance_id = ?")
-    ->execute([$instanceId]);
+$pdo->prepare("UPDATE google_accounts SET connected = 0, access_token = NULL, refresh_token = NULL WHERE shop_id = ?")
+    ->execute([$shopId]);
 
 $_SESSION['google_connected'] = false;
 

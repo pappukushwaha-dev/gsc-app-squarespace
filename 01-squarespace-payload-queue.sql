@@ -19,9 +19,9 @@
 
 SET @s := IF((SELECT COUNT(*) FROM information_schema.COLUMNS
   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'encharge_email_logs'
-    AND COLUMN_NAME = 'instance_id') = 0,
-  'ALTER TABLE encharge_email_logs ADD COLUMN instance_id VARCHAR(191) NOT NULL DEFAULT '' '' AFTER email',
-  'SELECT ''encharge_email_logs.instance_id already present'' AS note');
+    AND COLUMN_NAME = 'shop_id') = 0,
+  'ALTER TABLE encharge_email_logs ADD COLUMN shop_id VARCHAR(191) NOT NULL DEFAULT '' '' AFTER email',
+  'SELECT ''encharge_email_logs.shop_id already present'' AS note');
 PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
 
 SET @s := IF((SELECT COUNT(*) FROM information_schema.COLUMNS
@@ -92,7 +92,7 @@ SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT
 FROM information_schema.COLUMNS
 WHERE TABLE_SCHEMA = DATABASE()
   AND TABLE_NAME = 'encharge_email_logs'
-  AND COLUMN_NAME IN ('instance_id','email_type','website_url','payload',
+  AND COLUMN_NAME IN ('shop_id','email_type','website_url','payload',
                       'is_payload_generated','payload_attempts','payload_error','payload_done_at')
 ORDER BY ORDINAL_POSITION;
 

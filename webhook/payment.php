@@ -63,17 +63,17 @@ switch ($eventType) {
     case 'customer.subscription.deleted':
     case 'customer.subscription.updated':
         // Update subscription status if we track per-instance
-        $instanceId = $dataObject['metadata']['instance_id'] ?? null;
-        if ($instanceId) {
+        $shopId = $dataObject['metadata']['shop_id'] ?? null;
+        if ($shopId) {
             $isActive = ($eventType === 'customer.subscription.updated') ? 1 : 0;
             $stmt = $pdo->prepare("
                 UPDATE SquarespaceSite
                 SET is_active = :active, updated_at = NOW()
-                WHERE instance_id = :iid
+                WHERE shop_id = :iid
             ");
             $stmt->execute([
                 ':active' => $isActive,
-                ':iid'    => $instanceId,
+                ':iid'    => $shopId,
             ]);
         }
         break;

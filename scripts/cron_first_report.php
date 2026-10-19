@@ -14,9 +14,9 @@ echo "Started at: " . date('Y-m-d H:i:s') . "\n\n";
 
 // Find sites that were recently verified but haven't received first report
 $stmt = $pdo->prepare("
-    SELECT gdv.instance_id, gdv.site_url, ss.site_display_name
+    SELECT gdv.shop_id, gdv.site_url, ss.site_display_name
     FROM gsc_domain_verifications gdv
-    JOIN SquarespaceSite ss ON ss.instance_id = gdv.instance_id
+    JOIN SquarespaceSite ss ON ss.shop_id = gdv.shop_id
     WHERE gdv.verification_status = 'verified'
       AND gdv.verification_verified_at IS NOT NULL
     ORDER BY gdv.verification_verified_at DESC
@@ -28,36 +28,36 @@ $sites = $stmt->fetchAll(PDO::FETCH_ASSOC);
 echo "Found " . count($sites) . " verified sites.\n\n";
 
 foreach ($sites as $site) {
-    $instanceId = $site['instance_id'];
+    $shopId = $site['shop_id'];
     $siteUrl    = $site['site_url'];
     $siteName   = $site['site_display_name'];
 
     // Check if first report already sent (simple check via encharge_email_logs)
     $check = $pdo->prepare("
         SELECT COUNT(*) FROM encharge_email_logs
-        WHERE instance_id = ? AND email_type = 'first_report'
+        WHERE shop_id = ? AND email_type = 'first_report'
         LIMIT 1
     ");
-    $check->execute([$instanceId]);
+    $check->execute([$shopId]);
     $alreadySent = $check->fetchColumn() > 0;
 
     if ($alreadySent) {
-        echo "Skipping $instanceId — first report already sent.\n";
+        echo "Skipping $shopId — first report already sent.\n";
         continue;
     }
 
     // Insert first report email log
     $pdo->prepare("
         INSERT INTO encharge_email_logs
-            (instance_id, email_type, website_url, payload, is_payload_generated, created_at)
+            (shop_id, email_type, website_url, payload, is_payload_generated, created_at)
         VALUES (?, 'first_report', ?, ?, 'skipped', NOW())
     ")->execute([
-        $instanceId,
+        $shopId,
         $siteUrl,
         json_encode(['site_name' => $siteName, 'site_url' => $siteUrl]),
     ]);
 
-    echo "First report queued for $instanceId ($siteName)\n";
+    echo "First report queued for $shopId ($siteName)\n";
 }
 
 echo "\nCompleted at: " . date('Y-m-d H:i:s') . "\n";

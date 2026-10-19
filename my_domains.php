@@ -10,12 +10,12 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/includes/config.php';
 
-$instanceId = $_SESSION['instanceid'] ?? null;
+$shopId = $_SESSION['shop_id'] ?? null;
 $domains = [];
 
-if ($instanceId) {
-    $stmt = $pdo->prepare("SELECT site_url, site_display_name, verification_status FROM gsc_domain_verifications WHERE instance_id = ?");
-    $stmt->execute([$instanceId]);
+if ($shopId) {
+    $stmt = $pdo->prepare("SELECT site_url, site_display_name, verification_status FROM gsc_domain_verifications WHERE shop_id = ?");
+    $stmt->execute([$shopId]);
     $domains = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>

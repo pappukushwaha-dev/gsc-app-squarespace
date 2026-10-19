@@ -16,15 +16,15 @@ require_once __DIR__ . '/../../includes/google/token_manager.php';
 
 $data = json_decode(file_get_contents('php://input'), true) ?: [];
 
-$instanceId = $data['instanceId'] ?? $_SESSION['instanceid'] ?? null;
+$shopId = $data['shopId'] ?? $_SESSION['shop_id'] ?? null;
 $sitemapUrl = $data['sitemap_url'] ?? null;
 
-if (!$instanceId || !$sitemapUrl) {
+if (!$shopId || !$sitemapUrl) {
     echo json_encode(['success' => false, 'error' => 'missing_parameters']);
     exit;
 }
 
-$google = getGoogleAccountByUser($instanceId);
+$google = getGoogleAccountByUser($shopId);
 
 if (
     !$google ||
@@ -51,8 +51,8 @@ if (!preg_match('~^https?://~i', $sitemapUrl)) {
 
 // Submit sitemap to GSC: PUT /webmasters/v3/sites/{siteUrl}/sitemaps/{sitemapUrl}
 $siteUrl = null;
-$stmt = $pdo->prepare("SELECT site_url FROM gsc_domain_verifications WHERE instance_id = ? LIMIT 1");
-$stmt->execute([$instanceId]);
+$stmt = $pdo->prepare("SELECT site_url FROM gsc_domain_verifications WHERE shop_id = ? LIMIT 1");
+$stmt->execute([$shopId]);
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 if ($row) {
     $siteUrl = $row['site_url'];

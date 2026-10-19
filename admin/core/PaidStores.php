@@ -10,10 +10,10 @@ class PaidStores
     {
         global $pdo;
         $stmt = $pdo->query("
-            SELECT s.instance_id, s.site_url, s.site_display_name, s.created_at,
+            SELECT s.shop_id, s.site_url, s.site_display_name, s.created_at,
                    a.plan_name, a.status as sub_status
             FROM SquarespaceSite s
-            LEFT JOIN app_subscriptions a ON a.instance_id = s.instance_id
+            LEFT JOIN app_subscriptions a ON a.shop_id = s.shop_id
             WHERE a.status = 'active'
             ORDER BY s.created_at DESC
         ");
@@ -24,9 +24,9 @@ class PaidStores
     {
         global $pdo;
         $stmt = $pdo->query("
-            SELECT COUNT(DISTINCT s.instance_id)
+            SELECT COUNT(DISTINCT s.shop_id)
             FROM SquarespaceSite s
-            INNER JOIN app_subscriptions a ON a.instance_id = s.instance_id
+            INNER JOIN app_subscriptions a ON a.shop_id = s.shop_id
             WHERE a.status = 'active'
         ");
         return (int) $stmt->fetchColumn();

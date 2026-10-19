@@ -16,7 +16,7 @@ echo "Started at: " . date('Y-m-d H:i:s') . "\n\n";
 
 // Get all google_accounts for Squarespace
 $stmt = $pdo->query("
-    SELECT id, instance_id FROM google_accounts
+    SELECT id, shop_id FROM google_accounts
     WHERE connected = 1
 ");
 $accounts = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -28,16 +28,16 @@ $failed = 0;
 
 foreach ($accounts as $account) {
     $accountId = (int) $account['id'];
-    $instanceId = $account['instance_id'];
+    $shopId = $account['shop_id'];
 
     $result = ensureAccessToken($accountId, 120);
 
     if (!empty($result['access_token'])) {
         $refreshed++;
-        echo "✓ Refreshed token for $instanceId\n";
+        echo "✓ Refreshed token for $shopId\n";
     } else {
         $failed++;
-        echo "✗ Failed to refresh token for $instanceId: " . $result['reason'] . "\n";
+        echo "✗ Failed to refresh token for $shopId: " . $result['reason'] . "\n";
     }
 }
 

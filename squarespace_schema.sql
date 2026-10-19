@@ -21,7 +21,7 @@ SET @s := IF((SELECT COUNT(*) FROM information_schema.TABLES
   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'SquarespaceSite') = 0,
   'CREATE TABLE SquarespaceSite (
     id               INT NOT NULL AUTO_INCREMENT,
-    instance_id      VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT "Squarespace site ID (acts as instance_id)",
+    shop_id      VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT "Squarespace site ID (acts as shop_id)",
     site_id          VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT "Squarespace internal site ID",
     site_url         VARCHAR(2048) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT "Site URL",
     site_display_name VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT "Store/display name",
@@ -41,7 +41,7 @@ SET @s := IF((SELECT COUNT(*) FROM information_schema.TABLES
     created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at       DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    UNIQUE KEY uniq_instance (instance_id),
+    UNIQUE KEY uniq_instance (shop_id),
     KEY idx_domain (domain),
     KEY idx_created (created_at DESC)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
@@ -56,7 +56,7 @@ SET @s := IF((SELECT COUNT(*) FROM information_schema.TABLES
   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'gsc_domain_verifications') = 0,
   'CREATE TABLE gsc_domain_verifications (
     id                    INT NOT NULL AUTO_INCREMENT,
-    instance_id           VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT "Squarespace site_id / instance_id",
+    shop_id           VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT "Squarespace site_id / shop_id",
     site_url              VARCHAR(2048) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT "Site URL to verify",
     verification_status   VARCHAR(32) DEFAULT "pending" COMMENT "pending | verified | failed",
     meta_token            VARCHAR(255) DEFAULT NULL COMMENT "Google verification meta token",
@@ -66,7 +66,7 @@ SET @s := IF((SELECT COUNT(*) FROM information_schema.TABLES
     created_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at            DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    KEY idx_instance (instance_id),
+    KEY idx_instance (shop_id),
     KEY idx_status (verification_status)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
   'SELECT ''gsc_domain_verifications already present'' AS note');
@@ -116,13 +116,13 @@ PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
 
 CREATE TABLE IF NOT EXISTS gsc_page1_seen (
     id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    instance_id VARCHAR(191) NOT NULL,
+    shop_id VARCHAR(191) NOT NULL,
     query_hash  CHAR(32) NOT NULL,
     query       VARCHAR(500) NOT NULL DEFAULT '',
     position    DECIMAL(6,2) NOT NULL DEFAULT 0.00,
     created_at  TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    UNIQUE KEY uniq_inst_query (instance_id, query_hash)
+    UNIQUE KEY uniq_inst_query (shop_id, query_hash)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /* ------------------------------------------------------------

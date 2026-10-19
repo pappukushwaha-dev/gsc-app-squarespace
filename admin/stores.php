@@ -31,7 +31,7 @@ $stores = StoreManager::getAllStores();
     <tbody>
         <?php foreach ($stores as $store): ?>
         <tr class="border-b">
-            <td class="px-4 py-2 font-mono text-sm"><?= htmlspecialchars($store['instance_id']) ?></td>
+            <td class="px-4 py-2 font-mono text-sm"><?= htmlspecialchars($store['shop_id']) ?></td>
             <td class="px-4 py-2"><?= htmlspecialchars($store['site_url']) ?></td>
             <td class="px-4 py-2"><?= $store['is_active'] ? 'Active' : 'Inactive' ?></td>
         </tr>

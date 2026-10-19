@@ -10,7 +10,7 @@ class InactiveStores
     {
         global $pdo;
         $stmt = $pdo->query("
-            SELECT instance_id, site_url, site_display_name, domain, event_type, created_at
+            SELECT shop_id, site_url, site_display_name, domain, event_type, created_at
             FROM SquarespaceSite
             WHERE is_active = 0
             ORDER BY created_at DESC

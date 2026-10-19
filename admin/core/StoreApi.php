@@ -36,7 +36,7 @@ $stmt->execute();
 $total = (int) $stmt->fetchColumn();
 
 $stmt = $pdo->prepare("
-    SELECT instance_id, site_url, site_display_name, is_active, event_type, created_at
+    SELECT shop_id, site_url, site_display_name, is_active, event_type, created_at
     FROM SquarespaceSite $whereSql
     ORDER BY created_at DESC
     LIMIT :limit OFFSET :offset

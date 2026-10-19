@@ -42,17 +42,16 @@ if (!$row) {
 
 // mark the site verified the moment the owner proves email ownership
 if ((int) ($row['is_verified'] ?? 0) !== 1) {
-    $pdo->prepare("UPDATE SquarespaceSite SET is_verified = 1 WHERE instance_id = ?")
-        ->execute([(string) $row['instance_id']]);
+    $pdo->prepare("UPDATE SquarespaceSite SET is_verified = 1 WHERE shop_id = ?")
+        ->execute([(string) $row['shop_id']]);
 }
 
 // dashboard session — both spellings, read and written across the app.
 // user_id is the session key the dashboard's auth check looks for.
-$_SESSION['user_id']     = (string) $row['instance_id'];
-$_SESSION['instance_id'] = (string) $row['instance_id'];
-$_SESSION['instanceid']  = (string) $row['instance_id'];
+$_SESSION['user_id']     = (string) $row['shop_id'];
+$_SESSION['shop_id']  = (string) $row['shop_id'];
 $_SESSION['email']       = (string) ($row['email'] ?? '');
 $_SESSION['domain']      = (string) ($row['domain'] ?? '');
 
-header('Location: dashboard.php?instance_id=' . urlencode((string) $row['instance_id']));
+header('Location: dashboard.php?shop_id=' . urlencode((string) $row['shop_id']));
 exit;

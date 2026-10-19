@@ -5,18 +5,18 @@
 declare(strict_types=1);
 
 if (!function_exists('gsc_maybe_start_backfill')) {
-    function gsc_maybe_start_backfill($pdo, string $instanceId): void
+    function gsc_maybe_start_backfill($pdo, string $shopId): void
     {
         // Insert a backfill job so cron_payload_queue.php can pick it up
         try {
             $stmt = $pdo->prepare("
                 INSERT INTO encharge_email_logs
-                    (instance_id, email_type, website_url, payload, is_payload_generated, created_at)
+                    (shop_id, email_type, website_url, payload, is_payload_generated, created_at)
                 VALUES (?, 'backfill_started', '', '{}', 'skipped', NOW())
             ");
-            $stmt->execute([$instanceId]);
+            $stmt->execute([$shopId]);
         } catch (\Throwable $e) {
-            error_log("[backfill] insert failed for instance $instanceId: " . $e->getMessage());
+            error_log("[backfill] insert failed for instance $shopId: " . $e->getMessage());
         }
     }
 }

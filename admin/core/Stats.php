@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../includes/config.php';
 
 class Stats
 {
-    public static function getOverviewStats(string $instanceId): array
+    public static function getOverviewStats(string $shopId): array
     {
         global $pdo;
 

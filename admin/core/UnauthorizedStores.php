@@ -10,9 +10,9 @@ class UnauthorizedStores
     {
         global $pdo;
         $stmt = $pdo->query("
-            SELECT s.instance_id, s.site_url, s.site_display_name, s.created_at
+            SELECT s.shop_id, s.site_url, s.site_display_name, s.created_at
             FROM SquarespaceSite s
-            LEFT JOIN app_subscriptions a ON a.instance_id = s.instance_id
+            LEFT JOIN app_subscriptions a ON a.shop_id = s.shop_id
             WHERE a.status != 'active' OR a.status IS NULL
             ORDER BY s.created_at DESC
         ");
@@ -23,9 +23,9 @@ class UnauthorizedStores
     {
         global $pdo;
         $stmt = $pdo->query("
-            SELECT COUNT(DISTINCT s.instance_id)
+            SELECT COUNT(DISTINCT s.shop_id)
             FROM SquarespaceSite s
-            LEFT JOIN app_subscriptions a ON a.instance_id = s.instance_id
+            LEFT JOIN app_subscriptions a ON a.shop_id = s.shop_id
             WHERE a.status != 'active' OR a.status IS NULL
         ");
         return (int) $stmt->fetchColumn();

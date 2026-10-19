@@ -17,13 +17,13 @@ global $pdo;
 /* ==========================================================
    1. Resolve INSTANCE ID from OAuth state (Squarespace)
 ========================================================== */
-$instanceId = $_GET['state'] ?? null;
+$shopId = $_GET['state'] ?? null;
 
-if (!$instanceId) {
-    die('Missing instance parameter.');
+if (!$shopId) {
+    die('Missing shop_id parameter.');
 }
 
-$_SESSION['instance_id'] = $instanceId;
+$_SESSION['shop_id'] = $shopId;
 
 /* ==========================================================
    2. Validate OAuth code
@@ -98,8 +98,8 @@ $expiresIn    = $token['expires_in'] ?? null;
 $expiresAt    = $expiresIn ? date('Y-m-d H:i:s', time() + (int)$expiresIn) : null;
 
 // Check if google_accounts record exists for this instance
-$check = $pdo->prepare("SELECT id FROM google_accounts WHERE instance_id = :iid LIMIT 1");
-$check->execute([':iid' => $instanceId]);
+$check = $pdo->prepare("SELECT id FROM google_accounts WHERE shop_id = :iid LIMIT 1");
+$check->execute([':iid' => $shopId]);
 $exists = $check->fetchColumn();
 
 if ($exists) {
@@ -110,22 +110,22 @@ if ($exists) {
             token_expires_at = :exp,
             connected = 1,
             updated_at = NOW()
-        WHERE instance_id = :iid
+        WHERE shop_id = :iid
     ");
     $stmt->execute([
         ':at'  => $accessToken,
         ':rt'  => $refreshToken,
         ':exp' => $expiresAt,
-        ':iid' => $instanceId,
+        ':iid' => $shopId,
     ]);
 } else {
     $stmt = $pdo->prepare("
         INSERT INTO google_accounts
-            (instance_id, access_token, refresh_token, token_expires_at, connected, created_at)
+            (shop_id, access_token, refresh_token, token_expires_at, connected, created_at)
         VALUES (:iid, :at, :rt, :exp, 1, NOW())
     ");
     $stmt->execute([
-        ':iid' => $instanceId,
+        ':iid' => $shopId,
         ':at'  => $accessToken,
         ':rt'  => $refreshToken,
         ':exp' => $expiresAt,

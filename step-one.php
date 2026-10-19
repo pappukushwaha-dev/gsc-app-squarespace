@@ -1,7 +1,7 @@
 <?php
 // step-one.php — Squarespace site URL entry + Squarespace verification
 // User must enter valid Squarespace site URL before Google connect is enabled
-// site_id from Squarespace verification becomes the instance_id equivalent
+// site_id from Squarespace verification becomes the shop_id equivalent
 
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/credentials.php';
@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $siteName  = $host;
 
                 // --- Save / update SquarespaceSite record ---
-                $check = $pdo->prepare("SELECT id FROM SquarespaceSite WHERE instance_id = :iid LIMIT 1");
+                $check = $pdo->prepare("SELECT id FROM SquarespaceSite WHERE shop_id = :iid LIMIT 1");
                 $check->execute([':iid' => $siteId]);
                 $exists = $check->fetchColumn();
 
@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt = $pdo->prepare("
                         UPDATE SquarespaceSite
                         SET site_url = :url, site_display_name = :name, event_type = 'APPINSTALLED', updated_at = NOW()
-                        WHERE instance_id = :iid
+                        WHERE shop_id = :iid
                     ");
                     $stmt->execute([
                         ':url'  => $siteUrl,
@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     $stmt = $pdo->prepare("
                         INSERT INTO SquarespaceSite
-                            (instance_id, site_id, site_url, site_display_name, domain, event_type, is_active, created_at)
+                            (shop_id, site_id, site_url, site_display_name, domain, event_type, is_active, created_at)
                         VALUES (:iid, :sid, :url, :name, :dom, 'APPINSTALLED', 1, NOW())
                     ");
                     $stmt->execute([
@@ -98,9 +98,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]);
                 }
 
-                // Store in session as instance_id equivalent
-                $_SESSION['instanceid']        = $siteId;
-                $_SESSION['instance_id']       = $siteId;
+                // Store in session as shop_id equivalent
+                $_SESSION['shop_id']        = $siteId;
+                $_SESSION['shop_id']       = $siteId;
                 $_SESSION['squarespace_site_id'] = $siteId;
                 $_SESSION['squarespace_site_url'] = $siteUrl;
 
@@ -112,11 +112,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // --- If already verified in session ---
-if (isset($_SESSION['instanceid']) && !$siteVerified) {
+if (isset($_SESSION['shop_id']) && !$siteVerified) {
     $siteVerified = true;
-    $siteId       = $_SESSION['instanceid'];
+    $siteId       = $_SESSION['shop_id'];
     $siteUrl      = $_SESSION['squarespace_site_url'] ?? '';
-    $stmt = $pdo->prepare("SELECT site_display_name FROM SquarespaceSite WHERE instance_id = :iid LIMIT 1");
+    $stmt = $pdo->prepare("SELECT site_display_name FROM SquarespaceSite WHERE shop_id = :iid LIMIT 1");
     $stmt->execute([':iid' => $siteId]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     $siteName = $row['site_display_name'] ?? '';

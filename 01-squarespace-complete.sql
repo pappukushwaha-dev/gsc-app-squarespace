@@ -81,7 +81,7 @@ DROP TABLE IF EXISTS `EcwidSiteProfile`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `EcwidSiteProfile` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `instance_id` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'FK reference to ShopifySite.instance_id',
+  `shop_id` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'FK reference to ShopifySite.shop_id',
   `company_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `business_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `business_type` varchar(55) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -97,8 +97,8 @@ CREATE TABLE `EcwidSiteProfile` (
   `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `updated_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uniq_instance_id` (`instance_id`),
-  CONSTRAINT `fk_shopify_profile_instance` FOREIGN KEY (`instance_id`) REFERENCES `EcwidSite` (`instance_id`) ON DELETE CASCADE
+  UNIQUE KEY `uniq_shop_id` (`shop_id`),
+  CONSTRAINT `fk_shopify_profile_instance` FOREIGN KEY (`shop_id`) REFERENCES `EcwidSite` (`shop_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -174,7 +174,7 @@ DROP TABLE IF EXISTS `app_free_trials`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `app_free_trials` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `instance_id` varchar(255) NOT NULL,
+  `shop_id` varchar(255) NOT NULL,
   `status` enum('active','expired','converted') NOT NULL DEFAULT 'active',
   `started_at` datetime(3) NOT NULL,
   `expires_on` datetime(3) NOT NULL,
@@ -184,7 +184,7 @@ CREATE TABLE `app_free_trials` (
   `created_at` datetime(3) NOT NULL,
   `updated_at` datetime(3) NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uniq_free_trial_instance` (`instance_id`)
+  UNIQUE KEY `uniq_free_trial_instance` (`shop_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -204,7 +204,7 @@ DROP TABLE IF EXISTS `app_reviews`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `app_reviews` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `instance_id` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `shop_id` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `email` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `rating` tinyint unsigned NOT NULL COMMENT '1-10 rating score',
   `comment` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
@@ -213,7 +213,7 @@ CREATE TABLE `app_reviews` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `idx_instance_id` (`instance_id`),
+  KEY `idx_shop_id` (`shop_id`),
   KEY `idx_email` (`email`)
 ) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -234,7 +234,7 @@ DROP TABLE IF EXISTS `app_subscriptions`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `app_subscriptions` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `instance_id` varchar(200) NOT NULL,
+  `shop_id` varchar(200) NOT NULL,
   `plan_name` varchar(100) NOT NULL,
   `billing_period` varchar(20) NOT NULL,
   `status` varchar(20) NOT NULL,
@@ -252,7 +252,7 @@ CREATE TABLE `app_subscriptions` (
   `price` decimal(10,2) DEFAULT NULL,
   `customer_id` varchar(155) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `instance_id` (`instance_id`)
+  UNIQUE KEY `shop_id` (`shop_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -272,7 +272,7 @@ DROP TABLE IF EXISTS `cancellation_sessions`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `cancellation_sessions` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `instance_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `shop_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `current_step` int DEFAULT NULL,
   `completed` tinyint(1) DEFAULT '0',
   `final_action` varchar(100) DEFAULT NULL,
@@ -288,7 +288,7 @@ CREATE TABLE `cancellation_sessions` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `instance_id` (`instance_id`)
+  UNIQUE KEY `shop_id` (`shop_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=36 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -539,7 +539,7 @@ DROP TABLE IF EXISTS `google_accounts`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `google_accounts` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `instance_id` varchar(191) NOT NULL,
+  `shop_id` varchar(191) NOT NULL,
   `email` varchar(255) DEFAULT NULL,
   `access_token` text NOT NULL,
   `refresh_token` text,
@@ -550,8 +550,8 @@ CREATE TABLE `google_accounts` (
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `scope` text,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uniq_instance` (`instance_id`),
-  KEY `idx_instance` (`instance_id`)
+  UNIQUE KEY `uniq_instance` (`shop_id`),
+  KEY `idx_instance` (`shop_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=436 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -595,13 +595,13 @@ DROP TABLE IF EXISTS `gsc_backfill_log`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `gsc_backfill_log` (
-  `instance_id` varchar(191) NOT NULL,
+  `shop_id` varchar(191) NOT NULL,
   `status` varchar(20) NOT NULL,
   `rows_written` int unsigned NOT NULL DEFAULT '0',
   `took_seconds` decimal(7,1) DEFAULT NULL,
   `message` text,
   `attempted_at` datetime NOT NULL,
-  PRIMARY KEY (`instance_id`),
+  PRIMARY KEY (`shop_id`),
   KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -621,12 +621,12 @@ DROP TABLE IF EXISTS `gsc_ctr_curve`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `gsc_ctr_curve` (
-  `instance_id` varchar(191) NOT NULL,
+  `shop_id` varchar(191) NOT NULL,
   `position_band` tinyint unsigned NOT NULL COMMENT '1..20',
   `expected_ctr` decimal(6,4) NOT NULL COMMENT '0.0450 = 4.5%',
   `sample_size` int unsigned NOT NULL,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`instance_id`,`position_band`)
+  PRIMARY KEY (`shop_id`,`position_band`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -646,7 +646,7 @@ DROP TABLE IF EXISTS `gsc_domain_verifications`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `gsc_domain_verifications` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `instance_id` varchar(191) NOT NULL,
+  `shop_id` varchar(191) NOT NULL,
   `site_url` varchar(2048) NOT NULL,
   `brand_name` varchar(255) DEFAULT NULL,
   `meta_token` varchar(255) DEFAULT NULL,
@@ -658,8 +658,8 @@ CREATE TABLE `gsc_domain_verifications` (
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uniq_instance` (`instance_id`),
-  KEY `idx_instance` (`instance_id`)
+  UNIQUE KEY `uniq_instance` (`shop_id`),
+  KEY `idx_instance` (`shop_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=685 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -679,7 +679,7 @@ DROP TABLE IF EXISTS `gsc_page_query_daily`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `gsc_page_query_daily` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `instance_id` varchar(191) NOT NULL,
+  `shop_id` varchar(191) NOT NULL,
   `date` date NOT NULL,
   `page_hash` char(32) NOT NULL,
   `query_hash` char(32) NOT NULL,
@@ -689,9 +689,9 @@ CREATE TABLE `gsc_page_query_daily` (
   `impressions` int unsigned NOT NULL DEFAULT '0',
   `position` decimal(6,2) NOT NULL DEFAULT '0.00',
   PRIMARY KEY (`id`,`date`),
-  UNIQUE KEY `uniq_row` (`instance_id`,`date`,`page_hash`,`query_hash`),
-  KEY `idx_inst_date` (`instance_id`,`date`),
-  KEY `idx_inst_page` (`instance_id`,`page_hash`,`date`)
+  UNIQUE KEY `uniq_row` (`shop_id`,`date`,`page_hash`,`query_hash`),
+  KEY `idx_inst_date` (`shop_id`,`date`),
+  KEY `idx_inst_page` (`shop_id`,`page_hash`,`date`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 /*!50100 PARTITION BY RANGE (to_days(`date`))
 (PARTITION p202608 VALUES LESS THAN (740225) ENGINE = InnoDB,
@@ -725,7 +725,7 @@ DROP TABLE IF EXISTS `gsc_query_daily`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `gsc_query_daily` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `instance_id` varchar(191) NOT NULL,
+  `shop_id` varchar(191) NOT NULL,
   `date` date NOT NULL,
   `query_hash` char(32) NOT NULL COMMENT 'md5(query) — keeps the unique key short',
   `query` varchar(500) NOT NULL,
@@ -734,9 +734,9 @@ CREATE TABLE `gsc_query_daily` (
   `position` decimal(6,2) NOT NULL DEFAULT '0.00',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uniq_row` (`instance_id`,`date`,`query_hash`),
-  KEY `idx_inst_date` (`instance_id`,`date`),
-  KEY `idx_inst_q` (`instance_id`,`query_hash`,`date`)
+  UNIQUE KEY `uniq_row` (`shop_id`,`date`,`query_hash`),
+  KEY `idx_inst_date` (`shop_id`,`date`),
+  KEY `idx_inst_q` (`shop_id`,`query_hash`,`date`)
 ) ENGINE=InnoDB AUTO_INCREMENT=56 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -756,7 +756,7 @@ DROP TABLE IF EXISTS `gsc_snapshot_runs`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `gsc_snapshot_runs` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `instance_id` varchar(191) NOT NULL,
+  `shop_id` varchar(191) NOT NULL,
   `date` date NOT NULL,
   `status` enum('running','done','failed') NOT NULL DEFAULT 'running',
   `query_rows` int unsigned DEFAULT '0',
@@ -765,7 +765,7 @@ CREATE TABLE `gsc_snapshot_runs` (
   `started_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `finished_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uniq_run` (`instance_id`,`date`),
+  UNIQUE KEY `uniq_run` (`shop_id`,`date`),
   KEY `idx_status` (`status`,`date`)
 ) ENGINE=InnoDB AUTO_INCREMENT=723 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -812,7 +812,7 @@ DROP TABLE IF EXISTS `insights`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `insights` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `instance_id` varchar(191) NOT NULL,
+  `shop_id` varchar(191) NOT NULL,
   `type` enum('ctr','drop','newkw','broken','redirect','indexing') NOT NULL,
   `dedup_key` varchar(255) NOT NULL COMMENT 'type + entity, e.g. ctr:/best-shoes',
   `entity` varchar(1000) NOT NULL COMMENT 'page URL or query text',
@@ -834,9 +834,9 @@ CREATE TABLE `insights` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uniq_open` (`instance_id`,`dedup_key`,`open_flag`),
-  KEY `idx_feed` (`instance_id`,`status`,`severity`),
-  KEY `idx_unread` (`instance_id`,`status`)
+  UNIQUE KEY `uniq_open` (`shop_id`,`dedup_key`,`open_flag`),
+  KEY `idx_feed` (`shop_id`,`status`,`severity`),
+  KEY `idx_unread` (`shop_id`,`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -895,7 +895,7 @@ CREATE TABLE `otp_verifications` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `expires_at` timestamp NOT NULL,
   `is_verified` tinyint(1) NOT NULL DEFAULT '0',
-  `instance_id` varchar(255) DEFAULT NULL,
+  `shop_id` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `ux_email_otp` (`email`,`otp`)
 ) ENGINE=InnoDB AUTO_INCREMENT=169 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -1078,14 +1078,14 @@ DROP TABLE IF EXISTS `setup_wizard_status`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `setup_wizard_status` (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `instance_id` varchar(255) NOT NULL,
+  `shop_id` varchar(255) NOT NULL,
   `step1` tinyint(1) DEFAULT '0',
   `step2` tinyint(1) DEFAULT '0',
   `step3` tinyint(1) DEFAULT '0',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `instance_id` (`instance_id`)
+  UNIQUE KEY `shop_id` (`shop_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2248 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1132,14 +1132,14 @@ DROP TABLE IF EXISTS `sitemap_submission_logs`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `sitemap_submission_logs` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `instance_id` varchar(191) NOT NULL,
+  `shop_id` varchar(191) NOT NULL,
   `sitemap_url` varchar(2048) NOT NULL,
   `status` enum('Success','Failed') NOT NULL,
   `http_code` int DEFAULT NULL,
   `google_response` text,
   `submitted_at` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `idx_instance` (`instance_id`)
+  KEY `idx_instance` (`shop_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=584 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1159,7 +1159,7 @@ DROP TABLE IF EXISTS `sitemaps`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `sitemaps` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `instance_id` varchar(191) NOT NULL,
+  `shop_id` varchar(191) NOT NULL,
   `domain` varchar(512) DEFAULT NULL,
   `sitemap_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `status` enum('Pending','Success','Failed','Error') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'Pending',
@@ -1175,7 +1175,7 @@ CREATE TABLE `sitemaps` (
   `discovered_pages` int unsigned DEFAULT NULL,
   `last_synced_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uniq_instance_sitemap` (`instance_id`,`sitemap_url`)
+  UNIQUE KEY `uniq_instance_sitemap` (`shop_id`,`sitemap_url`)
 ) ENGINE=InnoDB AUTO_INCREMENT=206 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1195,7 +1195,7 @@ DROP TABLE IF EXISTS `sitemaps_duplicates_backup`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `sitemaps_duplicates_backup` (
   `id` int NOT NULL DEFAULT '0',
-  `instance_id` varchar(191) NOT NULL,
+  `shop_id` varchar(191) NOT NULL,
   `domain` varchar(512) DEFAULT NULL,
   `sitemap_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `status` enum('Pending','Success','Failed','Error') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'Pending',
@@ -1261,7 +1261,7 @@ DROP TABLE IF EXISTS `subscription_logs`;
 CREATE TABLE `subscription_logs` (
   `id` int NOT NULL AUTO_INCREMENT,
   `subscription_id` int NOT NULL,
-  `instance_id` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `shop_id` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `event_type` varchar(100) NOT NULL,
   `previous_status` varchar(50) DEFAULT NULL,
   `new_status` varchar(50) DEFAULT NULL,
@@ -1291,7 +1291,7 @@ CREATE TABLE `ticket_attachments` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `message_id` bigint unsigned NOT NULL,
   `ticket_id` bigint unsigned NOT NULL,
-  `instance_id` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `shop_id` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `original_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `stored_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `stored_path` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -1299,8 +1299,8 @@ CREATE TABLE `ticket_attachments` (
   `size_bytes` bigint unsigned DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `idx_msg_instance` (`message_id`,`instance_id`),
-  KEY `idx_ticket_instance` (`ticket_id`,`instance_id`),
+  KEY `idx_msg_instance` (`message_id`,`shop_id`),
+  KEY `idx_ticket_instance` (`ticket_id`,`shop_id`),
   CONSTRAINT `fk_ta_message_min` FOREIGN KEY (`message_id`) REFERENCES `ticket_messages` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -1322,12 +1322,12 @@ DROP TABLE IF EXISTS `ticket_messages`;
 CREATE TABLE `ticket_messages` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `ticket_id` bigint unsigned NOT NULL,
-  `instance_id` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `shop_id` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `is_internal` tinyint(1) NOT NULL DEFAULT '0',
   `message` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `idx_ticket_instance` (`ticket_id`,`instance_id`),
+  KEY `idx_ticket_instance` (`ticket_id`,`shop_id`),
   CONSTRAINT `fk_tm_ticket_min2` FOREIGN KEY (`ticket_id`) REFERENCES `tickets` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=83 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -1349,14 +1349,14 @@ DROP TABLE IF EXISTS `ticket_status_history`;
 CREATE TABLE `ticket_status_history` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `ticket_id` bigint unsigned NOT NULL,
-  `instance_id` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `shop_id` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `from_status` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `to_status` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `changed_by` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `note` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `idx_status_history_ticket` (`ticket_id`,`instance_id`),
+  KEY `idx_status_history_ticket` (`ticket_id`,`shop_id`),
   CONSTRAINT `fk_status_ticket_min2` FOREIGN KEY (`ticket_id`) REFERENCES `tickets` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=119 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -1377,7 +1377,7 @@ DROP TABLE IF EXISTS `tickets`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `tickets` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `instance_id` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `shop_id` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `ticket_number` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `subject` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `status` enum('open','pending','closed') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'open',
@@ -1386,8 +1386,8 @@ CREATE TABLE `tickets` (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_instance_ticket_number` (`instance_id`,`ticket_number`),
-  KEY `idx_instance_status` (`instance_id`,`status`)
+  UNIQUE KEY `uq_instance_ticket_number` (`shop_id`,`ticket_number`),
+  KEY `idx_instance_status` (`shop_id`,`status`)
 ) ENGINE=InnoDB AUTO_INCREMENT=68 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1460,7 +1460,7 @@ CREATE TABLE `webhook_test_logs` (
 -- SquarespaceSite (squarespace-specific) --
 CREATE TABLE IF NOT EXISTS SquarespaceSite (
     id               INT NOT NULL AUTO_INCREMENT,
-    instance_id      VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+    shop_id      VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
     site_id          VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
     site_url         VARCHAR(2048) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
     site_display_name VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -1484,7 +1484,7 @@ CREATE TABLE IF NOT EXISTS SquarespaceSite (
     created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at       DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    UNIQUE KEY uniq_instance (instance_id),
+    UNIQUE KEY uniq_instance (shop_id),
     KEY idx_domain (domain),
     KEY idx_created (created_at DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -1492,12 +1492,12 @@ CREATE TABLE IF NOT EXISTS SquarespaceSite (
 -- action_center (squarespace-specific) --
 CREATE TABLE IF NOT EXISTS action_center (
     id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    instance_id VARCHAR(191) NOT NULL,
+    shop_id VARCHAR(191) NOT NULL,
     action_type VARCHAR(100) NOT NULL,
     status      VARCHAR(32) DEFAULT "pending",
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    KEY idx_instance (instance_id),
+    KEY idx_instance (shop_id),
     KEY idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -1512,7 +1512,7 @@ CREATE TABLE IF NOT EXISTS email_logs (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE IF NOT EXISTS encharge_email_logs (
     id                  INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    instance_id         VARCHAR(191) NOT NULL DEFAULT '',
+    shop_id         VARCHAR(191) NOT NULL DEFAULT '',
     email               VARCHAR(320) NOT NULL DEFAULT '',
     email_type          VARCHAR(64) NOT NULL DEFAULT '',
     website_id          INT UNSIGNED NOT NULL DEFAULT 0,
@@ -1525,20 +1525,20 @@ CREATE TABLE IF NOT EXISTS encharge_email_logs (
     payload_done_at     DATETIME NULL,
     created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    KEY idx_instance (instance_id),
+    KEY idx_instance (shop_id),
     KEY idx_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- gsc_page1_seen (squarespace-specific) --
 CREATE TABLE IF NOT EXISTS gsc_page1_seen (
     id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    instance_id VARCHAR(191) NOT NULL,
+    shop_id VARCHAR(191) NOT NULL,
     query_hash  CHAR(32) NOT NULL,
     query       VARCHAR(500) NOT NULL DEFAULT '',
     position    DECIMAL(6,2) NOT NULL DEFAULT 0.00,
     created_at  TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    UNIQUE KEY uniq_inst_query (instance_id, query_hash)
+    UNIQUE KEY uniq_inst_query (shop_id, query_hash)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- support_tickets (squarespace-specific) --
@@ -1564,7 +1564,7 @@ CREATE TABLE IF NOT EXISTS support_tickets (
 CREATE TABLE IF NOT EXISTS gsc_magic_links (
     id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     email        VARCHAR(320) NOT NULL,
-    instance_id  VARCHAR(191) DEFAULT NULL,
+    shop_id  VARCHAR(191) DEFAULT NULL,
     token_hash   CHAR(64) NOT NULL,
     purpose      VARCHAR(30) NOT NULL DEFAULT 'login',
     expires_at   DATETIME NOT NULL,

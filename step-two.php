@@ -10,13 +10,13 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$instanceId = $_SESSION['instanceid'] ?? null;
-if (!$instanceId) {
+$shopId = $_SESSION['shop_id'] ?? null;
+if (!$shopId) {
     die("Instance ID missing");
 }
 
 // Get Google account
-$googleAccount = $instanceId ? getGoogleAccountByUser($instanceId) : null;
+$googleAccount = $shopId ? getGoogleAccountByUser($shopId) : null;
 $isConnected = (
     $googleAccount &&
     $googleAccount['connected'] == 1 &&
@@ -32,10 +32,10 @@ $isConnected = (
 $stmt = $pdo->prepare("
     SELECT site_url, site_display_name
     FROM SquarespaceSite
-    WHERE instance_id = ?
+    WHERE shop_id = ?
     LIMIT 1
 ");
-$stmt->execute([$instanceId]);
+$stmt->execute([$shopId]);
 $siteRow = $stmt->fetch(PDO::FETCH_ASSOC);
 $siteUrl = $siteRow['site_url'] ?? null;
 
@@ -52,20 +52,20 @@ if (!$normalizedSiteUrl) {
 // -----------------------------------------------------
 // 2. LOAD OR CREATE VERIFICATION RECORD
 // -----------------------------------------------------
-$stmt = $pdo->prepare("SELECT * FROM gsc_domain_verifications WHERE instance_id = ?");
-$stmt->execute([$instanceId]);
+$stmt = $pdo->prepare("SELECT * FROM gsc_domain_verifications WHERE shop_id = ?");
+$stmt->execute([$shopId]);
 $domain = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$domain) {
     $stmt = $pdo->prepare("
         INSERT INTO gsc_domain_verifications
-            (instance_id, site_url, verification_status)
+            (shop_id, site_url, verification_status)
         VALUES (?, ?, 'pending')
     ");
-    $stmt->execute([$instanceId, $normalizedSiteUrl]);
+    $stmt->execute([$shopId, $normalizedSiteUrl]);
 
     $domain = [
-        'instance_id'         => $instanceId,
+        'shop_id'         => $shopId,
         'site_url'            => $normalizedSiteUrl,
         'meta_token'          => null,
         'meta_tag'            => null,
@@ -81,7 +81,7 @@ $status    = $domain['verification_status'];
 // 3. SERVER-SIDE CHECK via check_property_status.php
 // -----------------------------------------------------
 // (Runs on page load; updates DB if property is verified)
-$checkUrl = __DIR__ . '/api/google/check_property_status.php?instanceId=' . urlencode($instanceId);
+$checkUrl = __DIR__ . '/api/google/check_property_status.php?shopId=' . urlencode($shopId);
 $checkResult = @file_get_contents($checkUrl);
 if ($checkResult !== false) {
     $checkData = json_decode($checkResult, true);
@@ -217,7 +217,7 @@ if ($checkResult !== false) {
     <?php if ($status !== 'verified'): ?>
     <div style="margin-bottom: 24px;">
         <button id="createPropertyBtn"
-            data-instance="<?= $instanceId ?>"
+            data-instance="<?= $shopId ?>"
             data-domain="<?= htmlspecialchars($normalizedSiteUrl) ?>"
             class="btn btn-cstm-primary w-full">
             <span>&#9998;</span> Create Property Automatically
@@ -238,7 +238,7 @@ if ($checkResult !== false) {
             </div>
         </div>
         <button id="verifyDomainBtn"
-            data-instance="<?= $instanceId ?>"
+            data-instance="<?= $shopId ?>"
             data-domain="<?= htmlspecialchars($normalizedSiteUrl) ?>"
             data-token="<?= htmlspecialchars($metaToken) ?>"
             class="btn btn-cstm-primary w-full">
@@ -255,7 +255,7 @@ if ($checkResult !== false) {
     <script>
     document.getElementById("createPropertyBtn")?.addEventListener("click", async function() {
         const btn = this;
-        const instanceId = btn.dataset.instance;
+        const shopId = btn.dataset.instance;
         const domain = btn.dataset.domain;
 
         btn.disabled = true;
@@ -265,7 +265,7 @@ if ($checkResult !== false) {
             const res = await fetch("api/google/create_property.php", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ instanceId, domain })
+                body: JSON.stringify({ shopId, domain })
             });
             const data = await res.json();
 
@@ -287,7 +287,7 @@ if ($checkResult !== false) {
 
     document.getElementById("verifyDomainBtn")?.addEventListener("click", async function() {
         const btn = this;
-        const instanceId = btn.dataset.instance;
+        const shopId = btn.dataset.instance;
         const domain = btn.dataset.domain;
         const token = btn.dataset.token;
 
@@ -298,7 +298,7 @@ if ($checkResult !== false) {
             const res = await fetch("api/google/verify_domain.php", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ instanceId, domain, meta_token: token })
+                body: JSON.stringify({ shopId, domain, meta_token: token })
             });
             const data = await res.json();
 

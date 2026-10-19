@@ -22,9 +22,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const checkBtn = document.getElementById('checkPropertyStatus');
     if (checkBtn) {
         checkBtn.addEventListener('click', async function() {
-            const instanceId = this.dataset.instance;
+            const shopId = this.dataset.instance;
             try {
-                const res = await fetch(`api/google/check_property_status.php?instanceId=${instanceId}`);
+                const res = await fetch(`api/google/check_property_status.php?shopId=${shopId}`);
                 const data = await res.json();
                 if (data.verified) {
                     alert('Property is verified!');

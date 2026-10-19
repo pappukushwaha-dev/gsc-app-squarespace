@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = 'No dashboard found for this email. Register your Squarespace site first.';
             $messageType = 'error';
         } else {
-            $token = createMagicToken($pdo, $email, (string) $instance['instance_id']);
+            $token = createMagicToken($pdo, $email, (string) $instance['shop_id']);
             if (sendMagicLink($email, $token)) {
                 $sentTo = $email;
             } else {

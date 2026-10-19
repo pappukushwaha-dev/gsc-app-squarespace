@@ -12,13 +12,13 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $_SESSION['show_review_modal'] = true;
 
-$instanceId = $_SESSION['instanceid'] ?? null;
-if (!$instanceId) {
+$shopId = $_SESSION['shop_id'] ?? null;
+if (!$shopId) {
     die("Missing instance ID");
 }
 
 // Google Account
-$google = getGoogleAccountByUser($instanceId);
+$google = getGoogleAccountByUser($shopId);
 $isConnected = ($google && !empty($google['access_token']));
 
 if (!$isConnected) {
@@ -26,8 +26,8 @@ if (!$isConnected) {
 }
 
 // Domain from verification table
-$stmt = $pdo->prepare("SELECT site_url FROM gsc_domain_verifications WHERE instance_id = ?");
-$stmt->execute([$instanceId]);
+$stmt = $pdo->prepare("SELECT site_url FROM gsc_domain_verifications WHERE shop_id = ?");
+$stmt->execute([$shopId]);
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Build a usable website URL for default sitemap
@@ -53,11 +53,11 @@ try {
     $stmt = $pdo->prepare("
         SELECT started_at, expires_on
         FROM app_free_trials
-        WHERE instance_id = ? AND status = 'active'
+        WHERE shop_id = ? AND status = 'active'
         ORDER BY started_at DESC
         LIMIT 1
     ");
-    $stmt->execute([$instanceId]);
+    $stmt->execute([$shopId]);
     $trial = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($trial && !empty($trial['expires_on'])) {
         $trialExpiresOnStep3 = $trial['expires_on'];
@@ -69,20 +69,20 @@ try {
 // -----------------------------------------------------
 // LOAD OR CREATE VERIFICATION RECORD
 // -----------------------------------------------------
-$stmt = $pdo->prepare("SELECT * FROM gsc_domain_verifications WHERE instance_id = ?");
-$stmt->execute([$instanceId]);
+$stmt = $pdo->prepare("SELECT * FROM gsc_domain_verifications WHERE shop_id = ?");
+$stmt->execute([$shopId]);
 $domain = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$domain) {
     $stmt = $pdo->prepare("
         INSERT INTO gsc_domain_verifications
-            (instance_id, site_url, verification_status)
+            (shop_id, site_url, verification_status)
         VALUES (?, ?, 'pending')
     ");
-    $stmt->execute([$instanceId, $siteUrl ?? '']);
+    $stmt->execute([$shopId, $siteUrl ?? '']);
 
     $domain = [
-        'instance_id'         => $instanceId,
+        'shop_id'         => $shopId,
         'site_url'            => $siteUrl ?? '',
         'meta_token'          => null,
         'meta_tag'            => null,
@@ -177,7 +177,7 @@ $status = $domain['verification_status'] ?? 'pending';
                     value="<?= htmlspecialchars($sitemapDefault) ?>" required>
                 <p class="hint">Enter the full sitemap URL (usually ends with sitemap.xml)</p>
             </div>
-            <input type="hidden" name="instanceId" value="<?= $instanceId ?>">
+            <input type="hidden" name="shopId" value="<?= $shopId ?>">
             <button type="submit" class="btn">Submit Sitemap</button>
         </form>
 

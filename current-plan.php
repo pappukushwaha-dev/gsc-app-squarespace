@@ -6,11 +6,11 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
 require_once __DIR__ . "/includes/config.php";
 require_once __DIR__ . "/includes/credentials.php";
 if (!isset($_SESSION["user_id"]) && !isset($_SESSION["admin_logged_in"])) { header("Location: sign-in.php"); exit; }
-$instanceId = $_SESSION["instanceid"] ?? null;
+$shopId = $_SESSION["shop_id"] ?? null;
 $subscription = null;
-if ($instanceId) {
-    $stmt = $pdo->prepare("SELECT plan_name, status, started_at, expires_at FROM app_subscriptions WHERE instance_id = ? ORDER BY started_at DESC LIMIT 1");
-    $stmt->execute([$instanceId]);
+if ($shopId) {
+    $stmt = $pdo->prepare("SELECT plan_name, status, started_at, expires_at FROM app_subscriptions WHERE shop_id = ? ORDER BY started_at DESC LIMIT 1");
+    $stmt->execute([$shopId]);
     $subscription = $stmt->fetch(PDO::FETCH_ASSOC);
 }
 ?>

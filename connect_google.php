@@ -19,7 +19,7 @@ $params = [
     'scope'         => GSC_SCOPES,
     'access_type'   => 'offline',
     'prompt'        => 'consent',
-    'state'         => $_SESSION['instanceid'] ?? '',
+    'state'         => $_SESSION['shop_id'] ?? '',
 ];
 
 $authUrl = $gscAuthUrl . '?' . http_build_query($params);

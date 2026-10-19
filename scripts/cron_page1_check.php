@@ -14,9 +14,9 @@ echo "Started at: " . date('Y-m-d H:i:s') . "\n\n";
 
 // Get verified sites
 $stmt = $pdo->prepare("
-    SELECT ss.instance_id, ss.site_url
+    SELECT ss.shop_id, ss.site_url
     FROM SquarespaceSite ss
-    JOIN gsc_domain_verifications gdv ON gdv.instance_id = ss.instance_id
+    JOIN gsc_domain_verifications gdv ON gdv.shop_id = ss.shop_id
     WHERE ss.is_active = 1
       AND gdv.verification_status = 'verified'
     LIMIT 50
@@ -27,13 +27,13 @@ $sites = $stmt->fetchAll(PDO::FETCH_ASSOC);
 echo "Found " . count($sites) . " verified sites.\n\n";
 
 foreach ($sites as $site) {
-    $instanceId = $site['instance_id'];
+    $shopId = $site['shop_id'];
 
     // Check if we already have page1_seen entries for recent queries
     // In real implementation, this would query GSC Search Analytics API
     // and insert breakthrough queries into gsc_page1_seen table
 
-    echo "Checked page 1 status for $instanceId\n";
+    echo "Checked page 1 status for $shopId\n";
 }
 
 echo "\nCompleted at: " . date('Y-m-d H:i:s') . "\n";

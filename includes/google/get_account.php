@@ -5,17 +5,17 @@
 declare(strict_types=1);
 
 if (!function_exists('getGoogleAccountByUser')) {
-    function getGoogleAccountByUser(string $instanceId): ?array
+    function getGoogleAccountByUser(string $shopId): ?array
     {
         global $pdo;
 
         $stmt = $pdo->prepare("
-            SELECT id, instance_id, access_token, refresh_token, token_expires_at, connected
+            SELECT id, shop_id, access_token, refresh_token, token_expires_at, connected
             FROM google_accounts
-            WHERE instance_id = ?
+            WHERE shop_id = ?
             LIMIT 1
         ");
-        $stmt->execute([$instanceId]);
+        $stmt->execute([$shopId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$row) {
@@ -32,7 +32,7 @@ if (!function_exists('getGoogleAccountById')) {
         global $pdo;
 
         $stmt = $pdo->prepare("
-            SELECT id, instance_id, access_token, refresh_token, token_expires_at, connected
+            SELECT id, shop_id, access_token, refresh_token, token_expires_at, connected
             FROM google_accounts
             WHERE id = ?
             LIMIT 1

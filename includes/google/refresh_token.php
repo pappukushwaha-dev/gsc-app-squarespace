@@ -3,11 +3,11 @@
 declare(strict_types=1);
 
 if (!function_exists('refreshGoogleToken')) {
-    function refreshGoogleToken(string $instanceId): ?string
+    function refreshGoogleToken(string $shopId): ?string
     {
         global $pdo;
 
-        $account = getGoogleAccountByUser($instanceId);
+        $account = getGoogleAccountByUser($shopId);
         if (!$account || empty($account['refresh_token'])) {
             return null;
         }
@@ -56,8 +56,8 @@ if (!function_exists('refreshGoogleToken')) {
         $pdo->prepare("
             UPDATE google_accounts
             SET access_token = ?, token_expires_at = ?, updated_at = NOW()
-            WHERE instance_id = ?
-        ")->execute([$newAccessToken, $newExpiresAt, $instanceId]);
+            WHERE shop_id = ?
+        ")->execute([$newAccessToken, $newExpiresAt, $shopId]);
 
         return $newAccessToken;
     }

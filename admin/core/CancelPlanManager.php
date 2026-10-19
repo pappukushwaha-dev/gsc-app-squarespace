@@ -6,12 +6,12 @@ require_once __DIR__ . '/../../includes/config.php';
 
 class CancelPlanManager
 {
-    public static function cancelSubscription(string $instanceId): bool
+    public static function cancelSubscription(string $shopId): bool
     {
         global $pdo;
         $stmt = $pdo->prepare("
-            UPDATE SquarespaceSite SET is_active = 0, event_type = 'CANCELLED', updated_at = NOW() WHERE instance_id = ?
+            UPDATE SquarespaceSite SET is_active = 0, event_type = 'CANCELLED', updated_at = NOW() WHERE shop_id = ?
         ");
-        return $stmt->execute([$instanceId]);
+        return $stmt->execute([$shopId]);
     }
 }

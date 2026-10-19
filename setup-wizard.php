@@ -15,13 +15,13 @@ require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/credentials.php';
 
 // --- Instance / site check ---
-// Squarespace uses site_id as instance_id equivalent
-$instanceId = $_SESSION['instanceid']
-    ?? $_SESSION['instance_id']
+// Squarespace uses site_id as shop_id equivalent
+$shopId = $_SESSION['shop_id']
+    ?? $_SESSION['shop_id']
     ?? $_SESSION['squarespace_site_id']
     ?? null;
 
-if (!$instanceId) {
+if (!$shopId) {
     header("Location: step-one.php");
     exit();
 }
@@ -30,10 +30,10 @@ if (!$instanceId) {
 $subStmt = $pdo->prepare("
     SELECT plan_name, status
     FROM app_subscriptions
-    WHERE instance_id = :iid
+    WHERE shop_id = :iid
     LIMIT 1
 ");
-$subStmt->execute([':iid' => $instanceId]);
+$subStmt->execute([':iid' => $shopId]);
 $subscription = $subStmt->fetch(PDO::FETCH_ASSOC);
 $hasActiveSubscription = ($subscription && $subscription['status'] === 'active');
 
@@ -58,11 +58,11 @@ $siteUrl = null;
 $siteStmt = $pdo->prepare("
     SELECT site_url, site_display_name
     FROM SquarespaceSite
-    WHERE instance_id = :iid
+    WHERE shop_id = :iid
       AND is_active = 1
     LIMIT 1
 ");
-$siteStmt->execute([':iid' => $instanceId]);
+$siteStmt->execute([':iid' => $shopId]);
 $siteRow = $siteStmt->fetch(PDO::FETCH_ASSOC);
 if ($siteRow) {
     $siteUrl = $siteRow['site_url'];

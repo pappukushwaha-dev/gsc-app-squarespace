@@ -14,8 +14,8 @@ require_once __DIR__ . '/core/StoreManager.php';
 
 AdminAuthController::requireAuth();
 
-$instanceId = $_GET['id'] ?? null;
-$store = $instanceId ? StoreManager::getStoreByInstance($instanceId) : null;
+$shopId = $_GET['id'] ?? null;
+$store = $shopId ? StoreManager::getStoreByInstance($shopId) : null;
 ?>
 <?php include __DIR__ . '/../partials/layouts/layoutTop.php'; ?>
 <div class="mb-6">
@@ -23,7 +23,7 @@ $store = $instanceId ? StoreManager::getStoreByInstance($instanceId) : null;
 </div>
 <?php if ($store): ?>
 <div class="max-w-md bg-white dark:bg-neutral-800 p-6 rounded-lg border border-neutral-200 dark:border-neutral-700">
-    <p class="font-bold">Site ID: <?= htmlspecialchars($store['instance_id']) ?></p>
+    <p class="font-bold">Site ID: <?= htmlspecialchars($store['shop_id']) ?></p>
     <p class="font-bold">Site URL: <?= htmlspecialchars($store['site_url']) ?></p>
     <p class="font-bold">Display Name: <?= htmlspecialchars($store['site_display_name'] ?? '-') ?></p>
     <p class="font-bold">Status: <?= $store['is_active'] ? 'Active' : 'Inactive' ?></p>

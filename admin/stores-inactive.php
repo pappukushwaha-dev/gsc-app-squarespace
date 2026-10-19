@@ -19,7 +19,7 @@ if (!isset($_SESSION["user_id"]) && !isset($_SESSION["admin_logged_in"])) {
 
 $stores = [];
 $stmt = $pdo->prepare("
-    SELECT instance_id, site_url, site_display_name, domain, event_type, created_at
+    SELECT shop_id, site_url, site_display_name, domain, event_type, created_at
     FROM SquarespaceSite
     WHERE is_active = 0
     ORDER BY created_at DESC
@@ -58,7 +58,7 @@ $stores = $stmt->fetchAll(PDO::FETCH_ASSOC) ?? [];
                 <?php else: ?>
                 <?php foreach ($stores as $store): ?>
                 <tr class="border-b border-neutral-100 dark:border-neutral-700">
-                    <td class="px-6 py-4 text-sm font-mono text-neutral-800 dark:text-neutral-200"><?= htmlspecialchars($store["instance_id"] ?? "") ?></td>
+                    <td class="px-6 py-4 text-sm font-mono text-neutral-800 dark:text-neutral-200"><?= htmlspecialchars($store["shop_id"] ?? "") ?></td>
                     <td class="px-6 py-4 text-sm text-neutral-800 dark:text-neutral-200"><?= htmlspecialchars($store["site_url"] ?? "") ?></td>
                     <td class="px-6 py-4 text-sm text-neutral-800 dark:text-neutral-200"><?= htmlspecialchars($store["site_display_name"] ?? "-") ?></td>
                     <td class="px-6 py-4 text-sm text-neutral-800 dark:text-neutral-200"><?= htmlspecialchars($store["domain"] ?? "-") ?></td>

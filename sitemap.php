@@ -8,7 +8,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/includes/config.php';
 
-if (!isset($_SESSION['instanceid'])) {
+if (!isset($_SESSION['shop_id'])) {
     header('Location: setup-wizard.php?step=1');
     exit;
 }

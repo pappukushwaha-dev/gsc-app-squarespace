@@ -14,7 +14,7 @@ echo "Started at: " . date('Y-m-d H:i:s') . "\n\n";
 
 // Get pending payload items
 $stmt = $pdo->prepare("
-    SELECT id, instance_id, email_type, website_url, payload, payload_attempts
+    SELECT id, shop_id, email_type, website_url, payload, payload_attempts
     FROM encharge_email_logs
     WHERE is_payload_generated IN ('no', 'skipped')
       AND payload_attempts < 5
@@ -33,7 +33,7 @@ echo "Found " . count($items) << " items to process.\n\n";
 
 foreach ($items as $item) {
     $id = $item['id'];
-    $instanceId = $item['instance_id'];
+    $shopId = $item['shop_id'];
     
     // Mark as processing
     $pdo->prepare("
@@ -44,7 +44,7 @@ foreach ($items as $item) {
 
     // Build payload (in real implementation, call Encharge API)
     $payload = json_encode([
-        'instance_id' => $instanceId,
+        'shop_id' => $shopId,
         'email_type'  => $item['email_type'],
         'website_url' => $item['website_url'],
         'platform'    => 'squarespace',
@@ -64,7 +64,7 @@ foreach ($items as $item) {
         ':id'      => $id,
     ]);
 
-    echo "Processed item #$id (instance: $instanceId)\n";
+    echo "Processed item #$id (instance: $shopId)\n";
 }
 
 echo "\nCompleted at: " . date('Y-m-d H:i:s') . "\n";

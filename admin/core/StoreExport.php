@@ -10,13 +10,13 @@ class StoreExport
     {
         global $pdo;
         $stmt = $pdo->query("
-            SELECT instance_id, site_url, site_display_name, domain, is_active, event_type, created_at
+            SELECT shop_id, site_url, site_display_name, domain, is_active, event_type, created_at
             FROM SquarespaceSite
             ORDER BY created_at DESC
         ");
         $stores = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $headers = ["instance_id", "site_url", "site_display_name", "domain", "is_active", "event_type", "created_at"];
+        $headers = ["shop_id", "site_url", "site_display_name", "domain", "is_active", "event_type", "created_at"];
         $output = fopen("php://temp", "r+");
         fputcsv($output, $headers);
         foreach ($stores as $store) {

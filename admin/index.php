@@ -22,7 +22,7 @@ if (!isset($_SESSION['user_id']) && !isset($_SESSION['admin_logged_in'])) {
 // Fetch stores list
 $stores = [];
 $stmt = $pdo->prepare("
-    SELECT instance_id, site_url, site_display_name, is_active, event_type, created_at
+    SELECT shop_id, site_url, site_display_name, is_active, event_type, created_at
     FROM SquarespaceSite
     ORDER BY created_at DESC
     LIMIT 50
@@ -90,7 +90,7 @@ $googleConnected = $pdo->query("SELECT COUNT(*) FROM google_accounts WHERE conne
                 <?php else: ?>
                 <?php foreach ($stores as $store): ?>
                 <tr class="border-b border-neutral-100 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700/50">
-                    <td class="px-6 py-4 text-sm text-neutral-800 dark:text-neutral-200 font-mono"><?= htmlspecialchars($store['instance_id'] ?? '') ?></td>
+                    <td class="px-6 py-4 text-sm text-neutral-800 dark:text-neutral-200 font-mono"><?= htmlspecialchars($store['shop_id'] ?? '') ?></td>
                     <td class="px-6 py-4 text-sm text-neutral-800 dark:text-neutral-200">
                         <a href="<?= htmlspecialchars($store['site_url'] ?? '#') ?>" target="_blank" class="text-cstm-primary hover:underline"><?= htmlspecialchars($store['site_url'] ?? '') ?></a>
                     </td>

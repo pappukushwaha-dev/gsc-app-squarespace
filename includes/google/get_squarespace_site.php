@@ -3,13 +3,13 @@
 declare(strict_types=1);
 
 if (!function_exists('getSquarespaceSiteByInstance')) {
-    function getSquarespaceSiteByInstance(string $instanceId): ?array
+    function getSquarespaceSiteByInstance(string $shopId): ?array
     {
         global $pdo;
         $stmt = $pdo->prepare("
-            SELECT * FROM SquarespaceSite WHERE instance_id = ? LIMIT 1
+            SELECT * FROM SquarespaceSite WHERE shop_id = ? LIMIT 1
         ");
-        $stmt->execute([$instanceId]);
+        $stmt->execute([$shopId]);
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 }

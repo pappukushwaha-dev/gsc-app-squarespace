@@ -12,12 +12,12 @@ require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/credentials.php';
 
 $googleConnected = isset($_SESSION['google_connected']) && $_SESSION['google_connected'] === true;
-$instanceId = $_SESSION['instanceid'] ?? null;
+$shopId = $_SESSION['shop_id'] ?? null;
 
 $siteUrl = null;
-if ($instanceId) {
-    $stmt = $pdo->prepare("SELECT site_url, site_display_name FROM SquarespaceSite WHERE instance_id = ? LIMIT 1");
-    $stmt->execute([$instanceId]);
+if ($shopId) {
+    $stmt = $pdo->prepare("SELECT site_url, site_display_name FROM SquarespaceSite WHERE shop_id = ? LIMIT 1");
+    $stmt->execute([$shopId]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($row) {
         $siteUrl = $row['site_url'];

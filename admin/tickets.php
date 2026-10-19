@@ -14,8 +14,8 @@ require_once __DIR__ . '/core/TicketManager.php';
 
 AdminAuthController::requireAuth();
 
-$instanceId = $_SESSION['instanceid'] ?? 'default';
-$tickets = TicketManager::getTickets($instanceId);
+$shopId = $_SESSION['shop_id'] ?? 'default';
+$tickets = TicketManager::getTickets($shopId);
 ?>
 <?php include __DIR__ . '/../partials/layouts/layoutTopnew.php'; ?>
 <div class="mb-6">

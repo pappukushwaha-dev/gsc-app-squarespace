@@ -11,13 +11,13 @@ require_once __DIR__ . '/../../includes/credentials.php';
 require_once __DIR__ . '/../../includes/google/get_account.php';
 require_once __DIR__ . '/../../includes/google/token_manager.php';
 
-$instanceId = $_GET['instanceId'] ?? null;
-if (!$instanceId) {
-    echo json_encode(['success' => false, 'error' => 'Missing instanceId']);
+$shopId = $_GET['shopId'] ?? null;
+if (!$shopId) {
+    echo json_encode(['success' => false, 'error' => 'Missing shopId']);
     exit;
 }
 
-$google = getGoogleAccountByUser($instanceId);
+$google = getGoogleAccountByUser($shopId);
 if (
     !$google ||
     (empty($google['access_token']) && empty($google['refresh_token']))
@@ -36,8 +36,8 @@ if (empty($accessToken)) {
 }
 
 // Domain from DB
-$stmt = $pdo->prepare("SELECT site_url FROM gsc_domain_verifications WHERE instance_id = ? LIMIT 1");
-$stmt->execute([$instanceId]);
+$stmt = $pdo->prepare("SELECT site_url FROM gsc_domain_verifications WHERE shop_id = ? LIMIT 1");
+$stmt->execute([$shopId]);
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$row) {
     echo json_encode(['success' => false, 'error' => 'Domain record not found']);
@@ -153,20 +153,20 @@ if ($verified) {
             verification_checked_at  = NOW(),
             meta_token               = ?,
             meta_tag                 = ?
-        WHERE instance_id = ?
-    ")->execute([$metaToken, $metaTag, $instanceId]);
+        WHERE shop_id = ?
+    ")->execute([$metaToken, $metaTag, $shopId]);
 
     // Start backfill
     require_once __DIR__ . '/../../includes/google/maybe_start_backfill.php';
     if (function_exists('gsc_maybe_start_backfill')) {
-        gsc_maybe_start_backfill($pdo, $instanceId);
+        gsc_maybe_start_backfill($pdo, $shopId);
     }
 } else {
     $pdo->prepare("
         UPDATE gsc_domain_verifications
         SET verification_checked_at = NOW()
-        WHERE instance_id = ?
-    ")->execute([$instanceId]);
+        WHERE shop_id = ?
+    ")->execute([$shopId]);
 }
 
 echo json_encode([

@@ -14,7 +14,7 @@ echo "Started at: " . date('Y-m-d H:i:s') . "\n\n";
 
 // Get active sites with digest_last_sent_at older than 6 days (or never sent)
 $stmt = $pdo->prepare("
-    SELECT ss.instance_id, ss.site_url, ss.site_display_name, ss.digest_last_sent_at
+    SELECT ss.shop_id, ss.site_url, ss.site_display_name, ss.digest_last_sent_at
     FROM SquarespaceSite ss
     WHERE ss.is_active = 1
       AND ss.event_type = 'APPINSTALLED'
@@ -30,15 +30,15 @@ $sites = $stmt->fetchAll(PDO::FETCH_ASSOC);
 echo "Found " . count($sites) . " sites needing weekly digest.\n\n";
 
 foreach ($sites as $site) {
-    $instanceId = $site['instance_id'];
+    $shopId = $site['shop_id'];
 
     // Insert weekly digest email log
     $pdo->prepare("
         INSERT INTO encharge_email_logs
-            (instance_id, email_type, website_url, payload, is_payload_generated, created_at)
+            (shop_id, email_type, website_url, payload, is_payload_generated, created_at)
         VALUES (?, 'weekly_digest', ?, ?, 'skipped', NOW())
     ")->execute([
-        $instanceId,
+        $shopId,
         $site['site_url'],
         json_encode(['site_name' => $site['site_display_name']]),
     ]);
@@ -47,10 +47,10 @@ foreach ($sites as $site) {
     $pdo->prepare("
         UPDATE SquarespaceSite
         SET digest_last_sent_at = NOW(), updated_at = NOW()
-        WHERE instance_id = ?
-    ")->execute([$instanceId]);
+        WHERE shop_id = ?
+    ")->execute([$shopId]);
 
-    echo "Weekly digest queued for $instanceId\n";
+    echo "Weekly digest queued for $shopId\n";
 }
 
 echo "\nCompleted at: " . date('Y-m-d H:i:s') . "\n";

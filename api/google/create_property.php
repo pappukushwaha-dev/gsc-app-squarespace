@@ -20,10 +20,10 @@ if (session_status() === PHP_SESSION_NONE) {
 ========================================================== */
 $data = json_decode(file_get_contents('php://input'), true) ?: [];
 
-$instanceId = $data['instanceId'] ?? $_SESSION['instanceid'] ?? null;
+$shopId = $data['shopId'] ?? $_SESSION['shop_id'] ?? null;
 $domain     = $data['domain'] ?? null;
 
-if (!$instanceId || !$domain) {
+if (!$shopId || !$domain) {
     echo json_encode(['success' => false, 'error' => 'missing_parameters']);
     exit;
 }
@@ -42,7 +42,7 @@ $property = rtrim($domain, '/') . '/';
 /* ==========================================================
    LOAD GOOGLE ACCOUNT
 ========================================================== */
-$google = getGoogleAccountByUser($instanceId);
+$google = getGoogleAccountByUser($shopId);
 
 if (
     !$google ||

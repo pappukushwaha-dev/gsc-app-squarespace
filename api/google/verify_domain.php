@@ -22,10 +22,10 @@ global $pdo;
 ========================================================== */
 $input = json_decode(file_get_contents('php://input'), true) ?: [];
 
-$instanceId = $_SESSION['instanceid'] ?? ($input['instanceId'] ?? null);
+$shopId = $_SESSION['shop_id'] ?? ($input['shopId'] ?? null);
 
-if (!$instanceId) {
-    echo json_encode(['success' => false, 'error' => 'missing_instance']);
+if (!$shopId) {
+    echo json_encode(['success' => false, 'error' => 'missing_shop_id']);
     exit;
 }
 
@@ -35,10 +35,10 @@ if (!$instanceId) {
 $stmt = $pdo->prepare("
     SELECT site_url, meta_token
     FROM gsc_domain_verifications
-    WHERE instance_id = ?
+    WHERE shop_id = ?
     LIMIT 1
 ");
-$stmt->execute([$instanceId]);
+$stmt->execute([$shopId]);
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$row || empty($row['site_url']) || empty($row['meta_token'])) {
@@ -52,7 +52,7 @@ $metaToken = $row['meta_token'];
 /* ==========================================================
    GOOGLE ACCOUNT
 ========================================================== */
-$googleAccount = getGoogleAccountByUser($instanceId);
+$googleAccount = getGoogleAccountByUser($shopId);
 
 if (
     !$googleAccount ||
@@ -101,8 +101,8 @@ if ($http >= 200 && $http < 300 && is_array($json)) {
         SET verification_status      = 'verified',
             verification_verified_at = NOW(),
             verification_checked_at  = NOW()
-        WHERE instance_id = ?
-    ")->execute([$instanceId]);
+        WHERE shop_id = ?
+    ")->execute([$shopId]);
 
     echo json_encode([
         'success' => true,
