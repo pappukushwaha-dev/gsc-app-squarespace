@@ -86,3 +86,32 @@ if (!function_exists('get_stripe_credentials')) {
         ];
     }
 }
+
+/* -------------------------
+ * Google OAuth credentials —
+ * saved from the admin panel's Google settings form (client_secret
+ * encrypted). Falls back to the .env constants when the table is
+ * empty, but the admin panel is the intended source, same as ecwid.
+ * ------------------------- */
+try {
+    $stmtGoogle = $pdo->query("SELECT client_id, client_secret, redirect_uri FROM google_settings LIMIT 1");
+    $googleSettings = $stmtGoogle->fetch(PDO::FETCH_ASSOC) ?: [];
+} catch (PDOException $e) {
+    $googleSettings = [];
+}
+
+$googleClientId        = $googleSettings['client_id'] ?? null;
+$googleClientSecretEnc = $googleSettings['client_secret'] ?? null;
+$googleRedirectUri     = $googleSettings['redirect_uri'] ?? null;
+
+$googleClientSecret = $googleClientSecretEnc ? decrypt($googleClientSecretEnc, ENCRYPTION_KEY) : null;
+
+if (!$googleClientId) {
+    $googleClientId = defined('GOOGLE_CLIENT_ID') ? GOOGLE_CLIENT_ID : '';
+}
+if (!$googleClientSecret) {
+    $googleClientSecret = defined('GOOGLE_CLIENT_SECRET') ? GOOGLE_CLIENT_SECRET : '';
+}
+if (!$googleRedirectUri) {
+    $googleRedirectUri = defined('GOOGLE_REDIRECT_URI') ? GOOGLE_REDIRECT_URI : '';
+}

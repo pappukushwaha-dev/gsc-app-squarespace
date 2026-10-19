@@ -12,15 +12,23 @@ require_once __DIR__ . '/includes/credentials.php';
 
 $gscAuthUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
 
+// credentials.php resolves these: google_settings table first (saved
+// from the admin panel), .env constants as fallback.
 $params = [
-    'client_id'     => GOOGLE_CLIENT_ID,
-    'redirect_uri'  => GOOGLE_REDIRECT_URI,
+    'client_id'     => $googleClientId,
+    'redirect_uri'  => $googleRedirectUri,
     'response_type' => 'code',
     'scope'         => GSC_SCOPES,
     'access_type'   => 'offline',
     'prompt'        => 'consent',
     'state'         => $_SESSION['shop_id'] ?? '',
 ];
+
+if ($googleClientId === '' || $googleClientSecret === '' || $googleRedirectUri === '') {
+    http_response_code(500);
+    echo 'Google sign-in is not configured yet. Set it in the admin panel (Settings -> Google) first.';
+    exit;
+}
 
 $authUrl = $gscAuthUrl . '?' . http_build_query($params);
 
