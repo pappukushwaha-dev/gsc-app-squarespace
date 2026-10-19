@@ -1,70 +1,88 @@
 <?php
-// webhook/payment.php — Stripe webhook (Squarespace platform)
-// WordPress-parity: signature verification, subscription upsert keyed on
-// shop_id (from checkout metadata), plan resolution by price_id, and
-// cancellation handling. Unrecognised prices are skipped (other apps on
-// the same Stripe account have their own endpoints).
-
 declare(strict_types=1);
 
-header('Content-Type: application/json; charset=utf-8');
-
-require_once __DIR__ . '/../includes/config.php';
+require __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/credentials.php';
-require_once __DIR__ . '/../vendor/autoload.php';
-
-global $pdo;
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-$payload   = @file_get_contents('php://input');
-$sigHeader = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '';
+use Stripe\Webhook;
 
-$stripeCreds    = get_stripe_credentials($pdo);
-$endpointSecret = $stripeCreds['webhook_secret'] ?? null;
+$stripeCreds = get_stripe_credentials($pdo);
+
+$endpointSecret = $stripeCreds['webhook_secret'];
 
 if (!$endpointSecret) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'webhook_secret_not_configured']);
+    echo 'Webhook secret not configured';
     exit;
 }
 
-function logWebhookEvent(PDO $pdo, string $stage, string $raw, ?string $eventType = null, ?string $error = null): void
+function logToFile(string $label, $data): void
 {
-    try {
-        $stmt = $pdo->prepare("
-            INSERT INTO webhook_test_logs (stage, event_type, raw_data, error_message)
-            VALUES (:stage, :event, :raw, :error)
-        ");
-        $stmt->execute([
-            ':stage' => $stage,
-            ':event' => $eventType,
-            ':raw'   => substr(json_encode($raw, JSON_PRETTY_PRINT), 0, 60000),
-            ':error' => $error,
-        ]);
-    } catch (Throwable $e) {
-        error_log('webhook log failed: ' . $e->getMessage());
+    $logFile = __DIR__ . '/stripe_webhook_debug.txt';
+
+    $entry = "============================\n";
+    $entry .= date('Y-m-d H:i:s') . " | " . $label . "\n";
+
+    if (is_string($data)) {
+        $entry .= $data . "\n";
+    } else {
+        $entry .= print_r($data, true) . "\n";
     }
+
+    $entry .= "============================\n\n";
+
+    file_put_contents($logFile, $entry, FILE_APPEND);
 }
-
-try {
-    $event = \Stripe\Webhook::constructEvent($payload, $sigHeader, $endpointSecret);
-} catch (Throwable $e) {
-    logWebhookEvent($pdo, 'SIGNATURE_FAILED', $payload, null, $e->getMessage());
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'signature_verification_failed']);
-    exit;
-}
-
-logWebhookEvent($pdo, 'EVENT_OK', $payload, $event->type);
-$dataObject = $event->data->object ?? null;
-
-/**
- * Resolve the local plan from a Stripe price id.
- */
-function getPlanByPrice(PDO $pdo, string $priceId): ?array
+// logger
+function logWebhook(PDO $pdo, string $stage, $data, ?string $eventType = null, ?string $error = null)
 {
     $stmt = $pdo->prepare("
-        SELECT id, name, billingPeriod, price
+        INSERT INTO webhook_test_logs (stage, event_type, raw_data, error_message)
+        VALUES (:stage, :event, :raw, :error)
+    ");
+
+    $stmt->execute([
+        ':stage' => $stage,
+        ':event' => $eventType,
+        ':raw'   => json_encode($data, JSON_PRETTY_PRINT),
+        ':error' => $error
+    ]);
+}
+
+// Raw input
+$payload = file_get_contents('php://input');
+
+$headers = function_exists('getallheaders') ? getallheaders() : [];
+
+$sigHeader = 
+    $_SERVER['HTTP_STRIPE_SIGNATURE'] 
+    ?? $_SERVER['REDIRECT_HTTP_STRIPE_SIGNATURE'] 
+    ?? ($headers['Stripe-Signature'] ?? '')
+    ?? '';
+
+logWebhook($pdo, 'RAW 01', $payload);
+logWebhook($pdo, 'RAW 05', $_SERVER);
+logWebhook($pdo, 'HEADERS', $headers);
+
+// verify signature
+try {
+    $event = Webhook::constructEvent($payload, $sigHeader, $endpointSecret);
+        logToFile('SIGNATURE OK', $event->type);
+
+} catch (Throwable $e) {
+    logWebhook($pdo, 'SIGNATURE_FAILED', $payload, null, $e->getMessage());
+     logToFile('SIGNATURE FAILED', $e->getMessage());
+    logToFile('FAILED PAYLOAD', $payload);
+    http_response_code(400);
+    exit;
+}
+
+// helper get plan
+function getPlan(PDO $pdo, string $priceId): ?array
+{
+    $stmt = $pdo->prepare("
+        SELECT name, billingPeriod
         FROM pricing_plans
         WHERE price_id = :pid
         LIMIT 1
@@ -73,112 +91,269 @@ function getPlanByPrice(PDO $pdo, string $priceId): ?array
     return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 
+// event handle
 switch ($event->type) {
 
+    // subscription add/update
     case 'customer.subscription.created':
-    case 'customer.subscription.updated': {
+    case 'customer.subscription.updated':
 
-        $subscription = $dataObject;
-        $shopId  = $subscription->metadata->shop_id ?? null;
-        $period  = $subscription->metadata->billing_period ?? null;
-        $priceId = $subscription->items->data[0]->price->id ?? null;
-        $status  = $subscription->status ?? '';
-        $custId  = $subscription->customer ?? null;
-        $periodEnd = $subscription->items->data[0]->current_period_end ?? null;
+        $sub = $event->data->object;
+        $customerId = $sub->customer ?? null;
+        // logToFile('SUB EVENT', $event->type);
+        // logToFile('SUB OBJECT', $sub);
+        $item = $sub->items->data[0] ?? null;
 
-        if (!$shopId || !$priceId) {
-            logWebhookEvent($pdo, 'SKIPPED - no shop_id/price_id', $payload, $event->type);
+        $meta = $sub->metadata ?? (object)[];
+
+       $shopId = $meta->shop_id ?? null;
+        $priceId = $item->price->id ?? null;
+
+        logWebhook($pdo, 'SUB_META', [
+            'subscription' => $sub->id,
+            'shop_id' => $shopId,
+            'price_id' => $priceId
+        ], $event->type);
+
+
+        if (!$priceId || !$shopId) {
+            logWebhook($pdo, 'SKIPPED - PUS', [
+                'priceId' => $priceId,
+                'shop_id'  => $shopId,
+            ], $event->type, 'Missing price/user/site');
             break;
         }
 
-        $plan = getPlanByPrice($pdo, $priceId);
+        $plan = getPlan($pdo, $priceId);
         if (!$plan) {
-            logWebhookEvent($pdo, 'SKIPPED - PNF', $payload, $event->type, 'Plan not found for ' . $priceId);
+            logWebhook($pdo, 'SKIPPED - PNF', [
+                'priceId' => $priceId
+            ], $event->type, 'Plan not found');
             break;
         }
-
-        $isActive = in_array($status, ['active', 'trialing'], true);
-        $expiresOn = $periodEnd ? date('Y-m-d H:i:s', (int) $periodEnd) : null;
 
         $stmt = $pdo->prepare("
             INSERT INTO app_subscriptions
-                (shop_id, stripe_subscription_id, customer_id, plan_name, billing_period,
-                 status, price, currency, raw_event, started_at, expires_on, payment_method)
+            (shop_id, stripe_subscription_id, customer_id, plan_name, billing_period,
+            status, price, currency, raw_event, started_at, expires_on, payment_method)
             VALUES
-                (:shop_id, :sub, :cust, :plan, :period, :status, :price, 'USD', :raw,
-                 NOW(), :expires, 'stripe')
+            (:instid,:sub,:cid,:plan,:period,:status,:price,:currency,:raw,
+            FROM_UNIXTIME(:start),FROM_UNIXTIME(:end), :pm)
             ON DUPLICATE KEY UPDATE
+                status = VALUES(status),
                 stripe_subscription_id = VALUES(stripe_subscription_id),
-                customer_id            = VALUES(customer_id),
-                plan_name              = VALUES(plan_name),
-                billing_period         = VALUES(billing_period),
-                status                 = VALUES(status),
-                price                  = VALUES(price),
-                expires_on             = VALUES(expires_on),
-                raw_event              = VALUES(raw_event),
-                updated_at             = NOW()
+                customer_id = COALESCE(VALUES(customer_id), customer_id),
+                price = VALUES(price),
+                currency = VALUES(currency),
+                raw_event = VALUES(raw_event),
+                expires_on = VALUES(expires_on),
+                payment_method = VALUES(payment_method),
+                updated_at = NOW()
         ");
+
         $stmt->execute([
-            ':shop_id' => $shopId,
-            ':sub'     => $subscription->id,
-            ':cust'    => $custId,
-            ':plan'    => $plan['name'],
-            ':period'  => $period ?: $plan['billingPeriod'],
-            ':status'  => $isActive ? 'active' : 'inactive',
-            ':price'   => $plan['price'],
-            ':raw'     => json_encode($event, JSON_UNESCAPED_SLASHES),
-            ':expires' => $expiresOn,
+            ':instid'      => $shopId,
+            ':sub'      => $sub->id,
+            ':cid'      => $customerId,
+            ':plan'     => $plan['name'],
+            ':period'   => $plan['billingPeriod'],
+            ':status'   => $sub->status,
+            ':price'    => $item->price->unit_amount / 100,
+            ':currency' => strtoupper($item->price->currency),
+            ':raw'      => json_encode($event->toArray()),
+            ':start'    => $sub->current_period_start,
+            ':end'      => $sub->current_period_end,
+            ':pm'       => 'Stripe'
         ]);
 
-        // keep the site active while its subscription is
-        $pdo->prepare("UPDATE SquarespaceSite SET is_active = 1 WHERE shop_id = ?")
-            ->execute([$shopId]);
+        logWebhook($pdo, 'SUBSCRIPTION_SAVED', [
+            'subscription' => $sub->id,
+            'priceId'      => $priceId
+        ], $event->type);
 
-        logWebhookEvent($pdo, 'SUB_SAVED', $payload, $event->type);
+    break;
+
+
+    // subscription delete
+    case 'customer.subscription.deleted':
+
+        $sub = $event->data->object;
+
+        $stmt = $pdo->prepare("
+            UPDATE app_subscriptions
+            SET status = 'cancelled',
+                expires_on = NOW(),
+                updated_at = NOW()
+            WHERE stripe_subscription_id = :sid
+        ");
+
+        $stmt->execute([
+            ':sid' => $sub->id
+        ]);
+
+        logWebhook($pdo, 'SUBSCRIPTION_CANCELLED', [
+            'subscription' => $sub->id
+        ], $event->type);
+
+        break;
+
+
+    // invoice payment success
+
+case 'invoice.payment_succeeded':
+
+    $invoice = $event->data->object;
+    $customerId = $invoice->customer ?? null;
+
+    $line = $invoice->lines->data[0] ?? null;
+    if (!$line) {
+        logWebhook($pdo, 'NO_LINE_ITEM', $invoice->id, $event->type);
         break;
     }
 
-    case 'customer.subscription.deleted': {
+    // Extract IDs from YOUR payload structure
+    $shopId = $line->metadata->shop_id ?? null;
+    $priceId    = $line->pricing->price_details->price ?? null;
+    $subscriptionId = $invoice->parent->subscription_details->subscription ?? null;
 
-        $shopId = $dataObject->metadata->shop_id ?? null;
-        if ($shopId) {
+    if (!$customerId && $subscriptionId) {
+        $stmt = $pdo->prepare("
+            SELECT customer_id 
+            FROM app_subscriptions 
+            WHERE stripe_subscription_id = :sid 
+            LIMIT 1
+        ");
+        $stmt->execute([':sid' => $subscriptionId]);
+        $customerId = $stmt->fetchColumn() ?: null;
+    }
+
+    if (!$shopId || !$subscriptionId || !$priceId) {
+        logWebhook($pdo, 'META_INCOMPLETE', [
+            'shop_id'   => $shopId,
+            'subscription'  => $subscriptionId,
+            'price_id'      => $priceId
+        ], $event->type);
+        break;
+    }
+
+    logWebhook($pdo, 'INVOICE_PARSED', [
+        'invoice_id'   => $invoice->id,
+        'subscription' => $subscriptionId,
+        'price_id'     => $priceId,
+        'shop_id'  => $shopId
+    ], $event->type);
+
+    $plan = getPlan($pdo, $priceId);
+    if (!$plan) {
+        logWebhook($pdo, 'SKIPPED_PLAN', [
+            'price_id' => $priceId
+        ], $event->type);
+        break;
+    }
+
+    try {
+        $periodStart = $line->period->start;
+        $periodEnd   = $line->period->end;
+
+        // Check if subscription already exists
+        $stmt = $pdo->prepare("
+            SELECT id FROM app_subscriptions
+            WHERE stripe_subscription_id = :sid
+            LIMIT 1
+        ");
+        $stmt->execute([':sid' => $subscriptionId]);
+        $exists = $stmt->fetch();
+
+        if ($exists) {
+            // Update existing
+            $stmt = $pdo->prepare("
+                UPDATE app_subscriptions
+                SET status='active',
+                    customer_id = COALESCE(:cid, customer_id),
+                    price=:price,
+                    currency=:currency,
+                    raw_event=:raw,
+                    expires_on=FROM_UNIXTIME(:end),
+                    updated_at=NOW()
+                WHERE stripe_subscription_id=:sid
+            ");
+
+            $stmt->execute([
+                ':cid'      => $customerId,
+                ':price'    => $invoice->amount_paid / 100,
+                ':currency' => strtoupper($invoice->currency),
+                ':raw'      => json_encode($event->toArray()),
+                ':end'      => $periodEnd,
+                ':sid'      => $subscriptionId
+            ]);
+
+            logWebhook($pdo, 'INVOICE_UPDATED', $subscriptionId, $event->type);
+
+        } else {
+            // Cancel other active subs for this instance
             $pdo->prepare("
                 UPDATE app_subscriptions
-                SET status = 'cancelled', cancelled_at = NOW()
-                WHERE shop_id = ?
-            ")->execute([$shopId]);
+                SET status = 'cancelled',
+                    expires_on = NOW(),
+                    updated_at = NOW()
+                WHERE shop_id = :instid
+                  AND status = 'active'
+                  AND stripe_subscription_id != :sid
+            ")->execute([
+                ':instid' => $shopId,
+                ':sid'    => $subscriptionId
+            ]);
 
-            logWebhookEvent($pdo, 'SUB_CANCELLED', $payload, $event->type);
+            // Insert new
+            $stmt = $pdo->prepare("
+                INSERT INTO app_subscriptions
+                (shop_id, stripe_subscription_id, customer_id, plan_name, billing_period,
+                 status, price, currency, raw_event, started_at, expires_on, payment_method)
+                VALUES
+                (:instid,:sid,:cid,:plan,:period,'active',:price,:currency,:raw,
+                 FROM_UNIXTIME(:start),FROM_UNIXTIME(:end), :pm)
+                ON DUPLICATE KEY UPDATE
+                    stripe_subscription_id = VALUES(stripe_subscription_id),
+                    customer_id = COALESCE(VALUES(customer_id), customer_id),
+                    plan_name = VALUES(plan_name),
+                    billing_period = VALUES(billing_period),
+                    status = VALUES(status),
+                    price = VALUES(price),
+                    currency = VALUES(currency),
+                    raw_event = VALUES(raw_event),
+                    expires_on = VALUES(expires_on),
+                    payment_method = VALUES(payment_method),
+                    updated_at = NOW()
+            ");
+
+            $stmt->execute([
+                ':instid'   => $shopId,
+                ':sid'      => $subscriptionId,
+                ':cid'      => $customerId,
+                ':plan'     => $plan['name'],
+                ':period'   => $plan['billingPeriod'],
+                ':price'    => $invoice->amount_paid / 100,
+                ':currency' => strtoupper($invoice->currency),
+                ':raw'      => json_encode($event->toArray()),
+                ':start'    => $periodStart,
+                ':end'      => $periodEnd,
+                ':pm'       => 'Stripe'
+            ]);
+
+            logWebhook($pdo, 'INVOICE_INSERTED', $subscriptionId, $event->type);
         }
-        break;
+
+    } catch (Throwable $e) {
+        logWebhook($pdo, 'DB_ERROR', $subscriptionId, $event->type, $e->getMessage());
     }
 
-    case 'invoice.payment_succeeded': {
-        // renewals land here: refresh the expiry from the subscription period
-        $subId = $dataObject->subscription ?? null;
-        if ($subId) {
-            try {
-                $sub = \Stripe\Subscription::retrieve($subId);
-                $shopId = $sub->metadata->shop_id ?? null;
-                $periodEnd = $sub->items->data[0]->current_period_end ?? null;
-                if ($shopId && $periodEnd) {
-                    $pdo->prepare("
-                        UPDATE app_subscriptions
-                        SET status = 'active', expires_on = FROM_UNIXTIME(?)
-                        WHERE shop_id = ?
-                    ")->execute([$periodEnd, $shopId]);
-                }
-            } catch (Throwable $e) {
-                error_log('invoice.payment_succeeded refresh: ' . $e->getMessage());
-            }
-        }
-        break;
-    }
+    break;
 
+    // debug
     default:
-        // other event types are received and ignored
-        break;
+        logWebhook($pdo, 'UNHANDLED ', $event, $event->type);
 }
 
-echo json_encode(['success' => true, 'received' => $event->type]);
-exit;
+// res
+http_response_code(200);
+echo json_encode(['success' => true]);

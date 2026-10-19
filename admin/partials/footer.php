@@ -1,10 +1,5 @@
-<?php
-// admin/partials/footer.php — Admin footer
-?>
-<footer class="border-t border-neutral-700 bg-neutral-800 py-6 mt-auto">
-    <div class="max-w-7xl mx-auto px-4 text-center">
-        <p class="text-sm text-neutral-400">&copy; 2026 GSC Admin — Squarespace</p>
+<footer class="d-footer">
+    <div class="flex items-center justify-between gap-3">
+        <p class="mb-0">© 2025 <span class="font-semibold"><a href="https://makkpressapps.com">Makkpress Technology</a></span>. All Rights Reserved.</p>
     </div>
 </footer>
-</body>
-</html>

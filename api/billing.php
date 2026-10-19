@@ -1,23 +1,59 @@
 <?php
-// api/billing.php — plan activation + Stripe checkout creation.
-// Free plan: DB-only activation. Paid: redirect to Stripe Checkout;
-// the webhook completes the subscription.
-
 declare(strict_types=1);
+
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
+
+register_shutdown_function(function () {
+    $e = error_get_last();
+    if ($e) {
+        http_response_code(500);
+        echo json_encode([
+            'fatal' => true,
+            'type' => $e['type'],
+            'message' => $e['message'],
+            'file' => $e['file'],
+            'line' => $e['line'],
+        ]);
+    }
+});
+
 
 header('Content-Type: application/json; charset=utf-8');
 
+
+/**
+ * --------------------------------------------------
+ * 1. Bootstrap (DB + session)
+ * --------------------------------------------------
+ */
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/credentials.php';
-require_once __DIR__ . '/../vendor/autoload.php';
 
-global $pdo;
+/**
+ * --------------------------------------------------
+ * 2. Stripe Autoload
+ * --------------------------------------------------
+ */
+$autoloadPath = __DIR__ . '/../vendor/autoload.php';
+if (!file_exists($autoloadPath)) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Stripe library missing. Run composer require stripe/stripe-php']);
+    exit;
+}
+require_once $autoloadPath;
 
-/* ---------- Stripe credentials (DB-backed) ---------- */
-
+/**
+ * --------------------------------------------------
+ * 3. Resolve Stripe Credentials (DB-backed)
+ * --------------------------------------------------
+ */
 try {
     $stripeCreds = get_stripe_credentials($pdo);
 } catch (Throwable $e) {
+    $stripeCreds = get_stripe_credentials($pdo);
+    echo($stripeCreds);
     error_log('Stripe credential error: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode(['error' => 'Stripe credentials unavailable']);
@@ -32,44 +68,67 @@ if (empty($stripeCreds['secret_key'])) {
 
 \Stripe\Stripe::setApiKey($stripeCreds['secret_key']);
 
-/* ---------- identity ---------- */
+/**
+ * --------------------------------------------------
+ * 4. Auth
+ * --------------------------------------------------
+ */
 
-$shopId = trim((string) ($_POST['shop_id']
-    ?? $_GET['shop_id']
-    ?? $_SESSION['shop_id']
-    ?? ''));
 
-if ($shopId === '') {
+$shopId = $_POST['shop_id'] 
+            ?? $_GET['shop_id'] 
+            ?? ($_SESSION['shop_id'] ?? null);
+$shopId = is_string($shopId) ? trim($shopId) : null;
+
+if ($shopId) {
+    $_SESSION['shop_id'] = $shopId;
+}
+
+
+if (!$shopId) {
     http_response_code(400);
     echo json_encode(['error' => 'Missing shop_id']);
     exit;
 }
 
-$_SESSION['shop_id'] = $shopId;
 
-/* ---------- input ---------- */
-
-$priceId       = $_POST['price_id'] ?? null;
+/**
+ * --------------------------------------------------
+ * 6. Read Input
+ * --------------------------------------------------
+ */
+$planId        = $_POST['plan_id'] ?? null;     // DB id (free plan)
+$priceId       = $_POST['price_id'] ?? null;   // Stripe price id (paid)
 $billingPeriod = $_POST['billing_period'] ?? null;
 
-if (!in_array($billingPeriod, ['monthly', 'yearly', 'free'], true)
-    || ($billingPeriod !== 'free' && !$priceId)) {
+if (
+    !in_array($billingPeriod, ['monthly', 'yearly', 'free'], true) ||
+    ($billingPeriod !== 'free' && !$priceId)
+) {
+
     http_response_code(400);
     echo json_encode(['error' => 'Invalid plan request']);
     exit;
 }
 
-/* ---------- plan lookup (by billing period + stripe price) ---------- */
-
+/**
+ * --------------------------------------------------
+ * 7. Fetch Pricing Plan
+ * --------------------------------------------------
+ */
 $stmt = $pdo->prepare("
     SELECT id, name, code, price, billingPeriod
     FROM pricing_plans
-    WHERE billingPeriod = :bp AND showInMarket = 1
-    LIMIT 1
-");
-$stmt->execute([':bp' => $billingPeriod]);
-$plan = $stmt->fetch(PDO::FETCH_ASSOC);
+WHERE billingPeriod = :bp
+  AND showInMarket = 1
+LIMIT 1
 
+");
+$stmt->execute([
+    ':bp' => $billingPeriod
+]);
+
+$plan = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$plan) {
     http_response_code(404);
     echo json_encode(['error' => 'Plan not found']);
@@ -79,36 +138,83 @@ if (!$plan) {
 $price  = (float) $plan['price'];
 $isFree = ($billingPeriod === 'free' || $price <= 0.0);
 
-/* ---------- active-subscription guard ---------- */
-
+/**
+ * --------------------------------------------------
+ * 8. Active Subscription Check
+ * --------------------------------------------------
+ */
 $check = $pdo->prepare("
-    SELECT billing_period FROM app_subscriptions
-    WHERE shop_id = :shop_id AND status = 'active'
+    SELECT billing_period
+    FROM app_subscriptions
+    WHERE shop_id = :shop_id
+      AND status = 'active'
     LIMIT 1
 ");
 $check->execute([':shop_id' => $shopId]);
+
+
+
+
+
+
 $activeBillingPeriod = $check->fetchColumn();
 
-if ($activeBillingPeriod && $activeBillingPeriod !== 'free' && $isFree) {
+if ($activeBillingPeriod && $isFree) {
     http_response_code(409);
-    echo json_encode(['error' => 'Cannot downgrade to Free while a paid plan is active']);
+    echo json_encode([
+        'error' => 'Cannot downgrade to Free while a paid plan is active'
+    ]);
     exit;
 }
 
-/* ---------- FREE plan: DB-only activation ---------- */
-
+/**
+ * --------------------------------------------------
+ * 9. FREE PLAN (DB-only activation)
+ * --------------------------------------------------
+ */
 if ($isFree) {
     try {
         $pdo->beginTransaction();
 
+        // app_subscriptions.shop_id is UNIQUE, so we can't insert a second
+        // row for the same instance. Upsert by shop_id: flip whatever row
+        // exists (paid / cancelled / trial) into an active Free row, or insert
+        // fresh if there's none yet. Stripe fields are cleared so future
+        // Stripe events for the old subscription don't collide with this Free
+        // record.
         $stmt = $pdo->prepare("
             INSERT INTO app_subscriptions
-                (shop_id, stripe_subscription_id, customer_id, plan_name,
-                 billing_period, status, price, currency, raw_event,
-                 started_at, expires_on, cancelled_at, payment_method)
+                (
+                    shop_id,
+                    stripe_subscription_id,
+                    customer_id,
+                    plan_name,
+                    billing_period,
+                    status,
+                    price,
+                    currency,
+                    raw_event,
+                    started_at,
+                    expires_on,
+                    cancelled_at,
+                    payment_method
+                )
             VALUES
-                (:shop_id, NULL, NULL, :plan_name, 'free', 'active', 0, 'USD',
-                 NULL, NOW(), NULL, NULL, 'free')
+                (
+                    :shop_id,
+                    NULL,
+                    NULL,
+                    :plan_name,
+                    'free',
+                    'active',
+                    0,
+                    'USD',
+                    NULL,
+                    NOW(),
+                    NULL,
+                    NULL,
+                    'free'
+                )
             ON DUPLICATE KEY UPDATE
                 stripe_subscription_id = NULL,
                 customer_id            = NULL,
@@ -124,84 +230,109 @@ if ($isFree) {
                 payment_method         = 'free',
                 updated_at             = NOW()
         ");
+
         $stmt->execute([
-            ':shop_id'   => $shopId,
-            ':plan_name' => $plan['name'],
+            ':shop_id' => (string)$shopId,
+            ':plan_name'   => $plan['name'],
         ]);
 
         $pdo->commit();
 
-        header('Location: ' . APP_URL . '/dashboard.php?shop_id=' . urlencode($shopId));
+        header("Location: " . APP_URL . 'dashboard.php?shop_id=' . urlencode($shopId));
         exit;
+
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
-        error_log('Free plan activation failed: ' . $e->getMessage());
+        error_log('Free plan insert error: ' . $e->getMessage());
+
         http_response_code(500);
-        echo json_encode(['error' => 'Failed to activate free plan']);
+        echo json_encode([
+            'error' => 'Failed to activate free plan',
+        ]);
         exit;
     }
 }
-
-/* ---------- PAID plan: owner details + Stripe Checkout ---------- */
-
-$stmt = $pdo->prepare("
-    SELECT owner_email AS email, domain
-    FROM SquarespaceSite
-    WHERE shop_id = :shop_id
-    LIMIT 1
-");
-$stmt->execute([':shop_id' => $shopId]);
-$site = $stmt->fetch(PDO::FETCH_ASSOC);
-
-$ownerEmail = trim((string) ($site['email'] ?? ''));
-$websiteUrl = trim((string) ($site['domain'] ?? ''));
-
-if ($ownerEmail === '' || !filter_var($ownerEmail, FILTER_VALIDATE_EMAIL)) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Owner email not found for this shop']);
-    exit;
-}
-if ($websiteUrl === '' || !filter_var('https://' . preg_replace('#^https?://#i', '', $websiteUrl), FILTER_VALIDATE_URL)) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Invalid or missing website URL']);
-    exit;
-}
-if (!preg_match('#^https?://#i', $websiteUrl)) {
-    $websiteUrl = 'https://' . $websiteUrl;
-}
-
-try {
-    $session = \Stripe\Checkout\Session::create([
-        'mode'                 => 'subscription',
-        'customer_email'       => $ownerEmail,
-        'allow_promotion_codes' => true,
-        'line_items'           => [[
-            'price'    => $priceId,
-            'quantity' => 1,
-        ]],
-        'subscription_data' => [
-            'metadata' => [
-                'shop_id'        => $shopId,
-                'platform'       => 'squarespace-googlesearchconsole',
-                'billing_period' => $billingPeriod,
-                'price_id'       => $priceId,
-                'website_url'    => $websiteUrl,
-            ],
-        ],
-        'success_url' => APP_URL . '/thank-you.php?session_id={CHECKOUT_SESSION_ID}&shop_id=' . urlencode($shopId),
-        'cancel_url'  => APP_URL . '/pricing.php',
+    $stmt = $pdo->prepare("
+        SELECT email, domain
+        FROM SquarespaceSite
+        WHERE shop_id = :shop_id
+        LIMIT 1
+    ");
+    $stmt->execute([
+        ':shop_id' => $shopId
     ]);
 
-    header('Location: ' . $session->url);
-    exit;
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-} catch (Throwable $e) {
+    $ownerEmail = isset($row['email']) ? trim($row['email']) : null;
+    $websiteUrl = isset($row['domain']) ? trim($row['domain']) : null;
+
+    if (!empty($websiteUrl) && !preg_match("~^https?://~", $websiteUrl)) {
+        $websiteUrl = "https://" . $websiteUrl;
+    }
+
+    if (!$ownerEmail || !filter_var($ownerEmail, FILTER_VALIDATE_EMAIL)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Owner email not found for this instance']);
+        exit;
+    }
+
+    if (!$websiteUrl || !filter_var($websiteUrl, FILTER_VALIDATE_URL)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid or missing website URL']);
+        exit;
+    }
+
+/**
+ * --------------------------------------------------
+ * 10. PAID PLAN (Stripe Checkout)
+ * --------------------------------------------------
+ */
+try {
+    $session = \Stripe\Checkout\Session::create([
+        'mode' => 'subscription',
+       'customer_email' => $ownerEmail,
+
+'allow_promotion_codes'=> true,
+
+        'line_items' => [[
+            'price' => $priceId,   
+            'quantity' => 1,
+            
+        ]],
+
+
+            // 🔥 IMPORTANT FIX
+        'subscription_data' => [
+            'metadata' => [
+                'shop_id'  => (string)$shopId,
+                'platform' => 'squarespace-googlesearchconsole',
+                'billing_period' => $billingPeriod,
+                'price_id' => $priceId,
+                'website_url'  => $websiteUrl,
+                       
+            ],
+        ],
+
+        'success_url' =>
+            'https://makkpressapps.com/squarespace/googlesearchconsole/thank-you.php?session_id={CHECKOUT_SESSION_ID}&shop_id=' .
+            urlencode($shopId),
+
+        'cancel_url' =>
+           'https://makkpressapps.com/squarespace/googlesearchconsole/pricing.php',
+    ]);
+
+    header("Location: " . $session->url);
+        exit;
+
+}catch (Throwable $e) {
     error_log('Stripe checkout error: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode([
-        'error'       => 'Stripe checkout failed',
+        'error' => 'Stripe checkout failed',
         'stripe_error' => $e->getMessage(),
     ]);
 }
+

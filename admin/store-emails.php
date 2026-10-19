@@ -143,7 +143,7 @@ $store = null;
 if ($shopId !== '') {
     try {
         $q = $pdo->prepare("
-            SELECT shop_id, domain, domain AS shop_domain, site_display_name AS shop_name, owner_email AS email
+            SELECT shop_id, domain, shop_domain, shop_name, email
             FROM SquarespaceSite
             WHERE shop_id = ?
             LIMIT 1

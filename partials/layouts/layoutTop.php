@@ -1,31 +1,65 @@
-<?php
-// partials/layouts/layoutTop.php — Admin layout top
-$title = $title ?? 'Admin — Squarespace';
-?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($title) ?></title>
-    <script src="https://unpkg.com/@iconify/iconify"></script>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <style>
-        .text-cstm-primary { color: #3b5bfd; }
-        .bg-cstm-primary { background-color: #3b5bfd; }
-        .dark { background-color: #111827; color: #f1f5f9; }
-    </style>
-</head>
-<body class="dark">
-    <nav class="border-b border-neutral-700 bg-neutral-800">
-        <div class="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
-            <a href="index.php" class="font-bold text-xl text-white">GSC Admin — Squarespace</a>
-            <div class="flex items-center gap-4">
-                <a href="stores.php" class="text-sm text-neutral-300 hover:text-white">Stores</a>
-                <a href="tickets.php" class="text-sm text-neutral-300 hover:text-white">Tickets</a>
-                <a href="settings.php" class="text-sm text-neutral-300 hover:text-white">Settings</a>
-                <a href="logout.php" class="text-sm text-red-400 hover:text-red-300">Logout</a>
-            </div>
-        </div>
-    </nav>
-    <main class="max-w-7xl mx-auto px-4 py-6">
+<?php include __DIR__ . '/../head.php' ?>
+<?php
+// Start session safely
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Try to get shop from URL or session
+$shop = $_GET['shop'] ?? $_SESSION['shop'] ?? null;
+
+// If no shop but we have shopId, get shop from database
+if (!$shop) {
+    // ✅ PRIORITIZE URL parameters (for admin "Login Into Store" functionality)
+    $shopId = $_GET['shop_id'] 
+        ?? $_GET['shop_id'] 
+        ?? $_SESSION['shop_id'] 
+        ?? $_SESSION['shop_id'] 
+        ?? null;
+    
+    if ($shopId) {
+        // Get shop domain from database
+        require_once __DIR__ . '/../../includes/config.php';
+        $stmt = $pdo->prepare("
+            SELECT shop_domain
+            FROM SquarespaceSite
+            WHERE shop_id = ?
+              AND is_active = 1
+            LIMIT 1
+        ");
+        $stmt->execute([$shopId]);
+        $shopDomain = $stmt->fetchColumn();
+        
+        if ($shopDomain) {
+            $shop = $shopDomain;
+            // Update session when shop_id comes from URL
+            if (isset($_GET['shop_id']) || isset($_GET['shop_id'])) {
+                $_SESSION['shop_id'] = $shopId;
+                $_SESSION['shop_id'] = $shopId;
+            }
+        }
+    }
+}
+
+// If still no shop, redirect to install (requires shop parameter)
+if (!$shopId) {
+    header("Location: sign-in.php");
+    exit();
+}
+
+$_SESSION['shop'] = $shop;
+?>
+
+<body class="dark:bg-neutral-800 bg-neutral-100 dark:text-white">
+
+    <?php include __DIR__ . '/../sidebar.php' ?>
+
+    <main class="dashboard-main">
+        <?php include __DIR__ . '/../navbar.php' ?>
+
+        <div class="dashboard-main-body">
+
+            <?php //include __DIR__ . '/../breadcrumb.php' ?>
+

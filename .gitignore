@@ -1,15 +1,9 @@
-vendor/
+/vendor
 .env
-.composer.lock
-.phpunit.result.cache
 *.log
-.idea/
-.vscode/
 .DS_Store
-Thumbs.db
-*.zip
-*.tar.gz
-dist/
-build/
-storage/logs/*.log
-tmp/
+*.sql
+# the schema migration for the email payload queue must be committed
+!01-ecwid-payload-queue.sql
+# platform migration file must be committed
+!01-*-other-app-clicks.sql

@@ -40,13 +40,13 @@ try {
     $encSecret = encrypt($clientSecret, ENCRYPTION_KEY);
 
     // Check if record exists
-    $check  = $pdo->query("SELECT id FROM squarespace_settings LIMIT 1");
+    $check  = $pdo->query("SELECT id FROM ecwid_settings LIMIT 1");
     $exists = $check->fetchColumn();
 
     if ($exists) {
 
         $stmt = $pdo->prepare("
-            UPDATE squarespace_settings
+            UPDATE ecwid_settings
             SET client_id     = :client_id,
                 client_secret = :client_secret,
                 redirect_uri  = :redirect_uri,
@@ -64,7 +64,7 @@ try {
     } else {
 
         $stmt = $pdo->prepare("
-            INSERT INTO squarespace_settings (client_id, client_secret, redirect_uri)
+            INSERT INTO ecwid_settings (client_id, client_secret, redirect_uri)
             VALUES (:client_id, :client_secret, :redirect_uri)
         ");
 

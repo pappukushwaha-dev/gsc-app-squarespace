@@ -1,97 +1,128 @@
 <?php
-// includes/google/token_manager.php — Ensure valid Google access token
-// Same pattern as Wix/Shopify includes/google/token_manager.php
-
+// includes/google/token_manager.php
 declare(strict_types=1);
 
-if (!function_exists('ensureAccessToken')) {
-    function ensureAccessToken(int $accountId, int $minValidSeconds = 120): array
-    {
-        global $pdo;
+require_once __DIR__ . '/refresh_token.php';
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../credentials.php';
 
-        $account = getGoogleAccountById($accountId);
-        if (!$account) {
-            return ['access_token' => null, 'reason' => 'account_not_found'];
-        }
+/**
+ * Ensure a valid access token for $accountId.
+ * Returns array: ['success'=>true,'access_token'=>string] or ['success'=>false,'error'=>'...']
+ */
+function ensureAccessToken(int $accountId, int $safetySeconds = 120) : array {
+    global $pdo;
 
-        $accessToken  = $account['access_token']  ?? null;
-        $refreshToken = $account['refresh_token'] ?? null;
-        $expiresAt    = $account['token_expires_at'] ?? null;
+    // Fetch the account row
+    $stmt = $pdo->prepare("SELECT * FROM google_accounts WHERE id = :id LIMIT 1");
+    $stmt->execute([':id' => $accountId]);
+    $rec = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$rec) return ['success'=>false, 'error'=>'not_found'];
 
-        // Check if token still valid
-        if ($accessToken && $expiresAt) {
-            $expiresTs = strtotime($expiresAt);
-            if ($expiresTs && (time() + $minValidSeconds) < $expiresTs) {
-                return ['access_token' => $accessToken, 'reason' => 'valid'];
-            }
-        }
+    // If developer added 'connected' flag
+    if (isset($rec['connected']) && (int)$rec['connected'] === 0) {
+        return ['success'=>false, 'error'=>'account_disconnected'];
+    }
 
-        // Refresh if we have a refresh token
-        if (!$refreshToken) {
-            return ['access_token' => $accessToken, 'reason' => 'no_refresh_token'];
-        }
+    $now = new DateTime('now', new DateTimeZone('UTC'));
+    $expiresAt = !empty($rec['token_expires_at']) ? new DateTime($rec['token_expires_at'], new DateTimeZone('UTC')) : null;
 
-        $stmt = $pdo->prepare("SELECT client_id, client_secret FROM google_settings LIMIT 1");
-        $stmt->execute();
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (!$row) {
-            return ['access_token' => null, 'reason' => 'google_settings_missing'];
-        }
+    // still valid?
+    if ($expiresAt && ($expiresAt->getTimestamp() - $now->getTimestamp() > $safetySeconds) && !empty($rec['access_token'])) {
+        return ['success'=>true, 'access_token'=>$rec['access_token']];
+    }
 
-        $clientId     = $row['client_id'];
-        $clientSecret = $row['client_secret'];
-        if (defined('ENCRYPTION_KEY') && ENCRYPTION_KEY !== '') {
-            $decrypted = decrypt($clientSecret, ENCRYPTION_KEY);
-            if ($decrypted !== null && $decrypted !== '') {
-                $clientSecret = $decrypted;
-            }
-        }
+    // Use a lightweight DB lock to avoid simultaneous refreshes (MySQL GET_LOCK)
+    $lockName = "gsc_refresh_lock_" . $accountId;
+    $got = false;
 
-        $ch = curl_init('https://oauth2.googleapis.com/token');
-        curl_setopt_array($ch, [
-            CURLOPT_POST           => true,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER     => ['Content-Type: application/x-www-form-urlencoded'],
-            CURLOPT_POSTFIELDS     => http_build_query([
-                'client_id'     => $clientId,
-                'client_secret' => $clientSecret,
-                'refresh_token' => $refreshToken,
-                'grant_type'    => 'refresh_token',
-            ]),
-            CURLOPT_TIMEOUT        => 15,
-        ]);
-        $response = curl_exec($ch);
-        $http     = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        $json = is_string($response) ? json_decode($response, true) : null;
-        if ($http < 200 || $http >= 300 || !is_array($json) || empty($json['access_token'])) {
-            return ['access_token' => null, 'reason' => 'refresh_failed_http_' . $http];
-        }
-
-        $newAccessToken = $json['access_token'];
-        $newExpiresAt   = isset($json['expires_in'])
-            ? date('Y-m-d H:i:s', time() + (int) $json['expires_in'])
-            : null;
-
+    try {
         try {
-            $pdo->prepare("
-                UPDATE google_accounts
-                SET access_token = :at,
-                    token_expires_at = :exp,
-                    updated_at = NOW()
-                WHERE id = :id
-            ")->execute([
-                ':at'  => $newAccessToken,
-                ':exp' => $newExpiresAt,
-                ':id'  => $accountId,
-            ]);
-        } catch (\Throwable) {
-            // Refresh worked; persistence failure only costs us a re-refresh next call.
+            $ldb = $pdo->prepare("SELECT GET_LOCK(:lock, 5) AS got");
+            $ldb->execute([':lock' => $lockName]);
+            $row = $ldb->fetch(PDO::FETCH_ASSOC);
+            $got = (bool)($row['got'] ?? 0);
+        } catch (Throwable $e) {
+            // proceed without lock if GET_LOCK not available
+            $got = false;
         }
 
-        return ['access_token' => $newAccessToken, 'reason' => 'refreshed'];
+        // If lock not obtained we still try to sleep briefly and re-check
+        if (!$got) {
+            usleep(200000); // 200ms
+            $stmt = $pdo->prepare("SELECT access_token, token_expires_at FROM google_accounts WHERE id = :id LIMIT 1");
+            $stmt->execute([':id' => $accountId]);
+            $rec2 = $stmt->fetch(PDO::FETCH_ASSOC);
+            $expiresAt2 = !empty($rec2['token_expires_at']) ? new DateTime($rec2['token_expires_at'], new DateTimeZone('UTC')) : null;
+            if ($expiresAt2 && ($expiresAt2->getTimestamp() - $now->getTimestamp() > $safetySeconds) && !empty($rec2['access_token'])) {
+                return ['success'=>true, 'access_token'=>$rec2['access_token']];
+            }
+        }
+
+        // Perform refresh
+        $refreshRecord = $rec;
+        $refreshResult = null;
+        try {
+            $refreshResult = refreshGoogleToken($refreshRecord);
+        } catch (Throwable $e) {
+            error_log("refreshGoogleToken threw exception for account {$accountId}: " . $e->getMessage());
+            return ['success'=>false, 'error'=>'refresh_exception', 'message'=>$e->getMessage()];
+        }
+
+        // Handle different return shapes
+        if (is_string($refreshResult) && $refreshResult !== '') {
+            return ['success'=>true, 'access_token'=>$refreshResult];
+        }
+
+        if (is_array($refreshResult) && isset($refreshResult['success']) && $refreshResult['success'] === true) {
+            if (!empty($refreshResult['access_token'])) {
+                return ['success'=>true, 'access_token'=>$refreshResult['access_token']];
+            }
+            $stmt = $pdo->prepare("SELECT access_token, token_expires_at FROM google_accounts WHERE id = :id LIMIT 1");
+            $stmt->execute([':id' => $accountId]);
+            $rowAfter = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!empty($rowAfter['access_token'])) {
+                return ['success'=>true, 'access_token'=>$rowAfter['access_token']];
+            }
+            return ['success'=>false, 'error'=>'no_token_returned'];
+        }
+
+        if (is_array($refreshResult)) {
+            $err = $refreshResult['error'] ?? null;
+            $googleResp = $refreshResult['google_response'] ?? null;
+            $respText = is_string($googleResp) ? $googleResp : (is_array($googleResp) ? json_encode($googleResp) : '');
+            $combined = strtolower(($err ?? '') . ' ' . $respText);
+
+            if (strpos($combined, 'invalid_grant') !== false || stripos($respText, 'invalid_grant') !== false) {
+                try {
+                    $u = $pdo->prepare("UPDATE google_accounts SET connected = 0, last_error = :err, updated_at = NOW() WHERE id = :id");
+                    $u->execute([':err' => json_encode($refreshResult), ':id' => $accountId]);
+                } catch (Throwable $e) {
+                    error_log("Failed to mark account {$accountId} disconnected: " . $e->getMessage());
+                }
+                return ['success'=>false, 'error'=>'invalid_grant', 'details'=>$refreshResult];
+            }
+
+            try {
+                $pdo->prepare("UPDATE google_accounts SET last_error = :err, updated_at = NOW() WHERE id = :id")
+                    ->execute([':err' => json_encode($refreshResult), ':id' => $accountId]);
+            } catch (Throwable $e) {
+                error_log("Failed to save last_error for account {$accountId}: " . $e->getMessage());
+            }
+
+            return ['success'=>false, 'error'=>'refresh_failed', 'details'=>$refreshResult];
+        }
+
+        return ['success'=>false, 'error'=>'refresh_unknown', 'data'=> $refreshResult];
+
+    } finally {
+        if (!empty($got)) {
+            try {
+                $pdo->prepare("SELECT RELEASE_LOCK(:lock)")->execute([':lock'=>$lockName]);
+            } catch (Throwable $e) {
+                error_log("Failed to release lock {$lockName}: " . $e->getMessage());
+            }
+        }
     }
 }
 
-echo 'token_manager_loaded';

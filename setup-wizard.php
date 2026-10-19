@@ -1,32 +1,26 @@
 <?php
-// setup-wizard.php — Squarespace GSC Setup Wizard entry point
-// Same pattern as Wix/Shopify setup-wizard.php
 
 declare(strict_types=1);
-
 $title    = 'Google Search Console Setup';
 $subTitle = 'Setup';
-
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
 require_once __DIR__ . '/includes/config.php';
-require_once __DIR__ . '/includes/credentials.php';
 
-// --- Instance / site check ---
-// Squarespace uses site_id as shop_id equivalent
-$shopId = $_SESSION['shop_id']
-    ?? $_SESSION['shop_id']
-    ?? $_SESSION['squarespace_site_id']
-    ?? null;
+/* ==========================================================
+   1. INSTANCE RESOLUTION (STANDARDIZED)
+========================================================== */
+$shopId = $_SESSION['shop_id'] ?? $_GET['shopId'] ?? null;
+
 
 if (!$shopId) {
-    header("Location: step-one.php");
-    exit();
+    header("Location: sign-in.php");
+    exit;
 }
-
-// Check subscription (same as Shopify)
 $subStmt = $pdo->prepare("
     SELECT plan_name, status
     FROM app_subscriptions
@@ -37,49 +31,54 @@ $subStmt->execute([':iid' => $shopId]);
 $subscription = $subStmt->fetch(PDO::FETCH_ASSOC);
 $hasActiveSubscription = ($subscription && $subscription['status'] === 'active');
 
-// --- Step handling ---
+/* ==========================================================
+   3. STEP HANDLING
+========================================================== */
 $step = $_GET['step'] ?? '1';
 if (!in_array($step, ['1', '2', '3'], true)) {
     $step = '1';
 }
-
 $steps = [
     '1' => ['label' => 'Step 1', 'title' => 'Connect Your Domain'],
     '2' => ['label' => 'Step 2', 'title' => 'Verify Domain or Add New'],
     '3' => ['label' => 'Step 3', 'title' => 'Submit Sitemap'],
 ];
-
 $currentStep = (int)$step;
 $prevStep    = max(1, $currentStep - 1);
 $nextStep    = min(count($steps), $currentStep + 1);
 
-// --- Fetch Squarespace site data ---
+/* ==========================================================
+   4. FETCH SHOPIFY SITE DATA (NEW DB)
+========================================================== */
 $siteUrl = null;
 $siteStmt = $pdo->prepare("
-    SELECT site_url, site_display_name
+    SELECT domain
     FROM SquarespaceSite
     WHERE shop_id = :iid
       AND is_active = 1
     LIMIT 1
 ");
 $siteStmt->execute([':iid' => $shopId]);
-$siteRow = $siteStmt->fetch(PDO::FETCH_ASSOC);
-if ($siteRow) {
-    $siteUrl = $siteRow['site_url'];
+$shopDomain = $siteStmt->fetchColumn();
+if ($shopDomain) {
+    $siteUrl = 'https://' . $shopDomain;
 }
 
-// --- Layout start ---
+/* ==========================================================
+   5. LAYOUT START
+========================================================== */
 include './partials/layouts/layoutTopnew.php';
 include __DIR__ . '/partials/ticket-submit-popup.php';
-include __DIR__ . '/partials/instruction-popup.php';
 ?>
 <style>
     .box-shadow-cstm {
         box-shadow: 0 0 0 4px #fff;
     }
+
     .dark .box-shadow-cstm {
         box-shadow: 0 0 0 4px #273142;
     }
+
     .muted-progress-line {
         left: 15%;
         right: 15%;
@@ -87,6 +86,7 @@ include __DIR__ . '/partials/instruction-popup.php';
         margin-inline: auto;
         top: 22px;
     }
+
     .progress-line {
         left: 15%;
         margin-top: -6px;
@@ -97,7 +97,7 @@ include __DIR__ . '/partials/instruction-popup.php';
 <!-- ===================== HEADER CARD ===================== -->
 <div class="border border-neutral-200 bg-white shadow-sm mb-6 rounded-lg"
     style="background:linear-gradient(135deg,#c8dcfa 0%,#e4ebf9 100%)">
-    <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-2 px-6 py-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-2 px-6 py-3">
         <div>
             <h4 class="text-xl font-semibold flex items-center gap-2">
                 <iconify-icon icon="heroicons:globe-alt-solid" class="text-2xl text-cstm-primary"></iconify-icon>
@@ -107,8 +107,11 @@ include __DIR__ . '/partials/instruction-popup.php';
                 <?php if ($siteUrl): ?>
                     <a href="<?= htmlspecialchars($siteUrl) ?>"
                         target="_blank"
-                        class="px-2 py-1.5 border rounded-lg text-xs font-medium bg-white text-cstm-primary hover:underline max-w-max truncate border-gray-300">
-                        <?= htmlspecialchars(parse_url($siteUrl, PHP_URL_HOST)) ?>
+                        class="px-2 py-1.5 border rounded-lg text-sm font-medium text-[#652ec3] hover:underline max-w-max truncate border-gray-300 block">
+                        <?= htmlspecialchars(
+                            parse_url($siteUrl, PHP_URL_HOST) .
+                                (parse_url($siteUrl, PHP_URL_PATH) ?? '')
+                        ) ?>
                     </a>
                 <?php else: ?>
                     <span class="text-sm text-gray-500">Website not linked</span>
@@ -116,84 +119,117 @@ include __DIR__ . '/partials/instruction-popup.php';
             </p>
         </div>
         <div class="text-center">
-            <h4 class="text-4xl font-semibold text-neutral-800 dark:text-neutral-100 text-center">
-                Setup Wizard
-            </h4>
-            <p class="text-neutral-600 text-center text-sm mt-1">Follow the steps to configure your Squarespace site.</p>
+            <h4 class="text-4xl font-semibold">Setup Wizard</h4>
+            <p class="text-sm text-gray-600 mt-1">
+                Follow the steps to configure Google Search Console.
+            </p>
         </div>
-        <div class="flex justify-end">
-            <button id="support-ticket-btn" class="btn btn-cstm-primary flex justify-center items-center gap-2 text-base">
-                <iconify-icon icon="bx:support" width="18" height="18"></iconify-icon>
+        <div class="flex justify-center sm:justify-end">
+            <button id="support-ticket-btn" class="btn btn-cstm-primary flex items-center gap-2">
+                <iconify-icon icon="bx:support" width="18"></iconify-icon>
                 Support
             </button>
         </div>
     </div>
 </div>
 
-<!-- ===================== PROGRESS BAR ===================== -->
-<div class="max-w-4xl mx-auto px-4 mb-6">
-    <div class="relative flex items-center mb-4">
-        <div class="flex-1 h-1 bg-neutral-200 dark:bg-neutral-700 rounded-full"></div>
-        <?php foreach ($steps as $key => $stepInfo): ?>
-            <?php $isActive = $key === $step; ?>
-            <div class="flex-none w-12 h-12 rounded-full flex items-center justify-center
-                <?php echo $isActive ? 'bg-cstm-primary text-white' : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-500'; ?>
-                z-10 relative">
-                <span class="text-sm font-bold"><?= $key ?></span>
+<!-- ===================== WIZARD ===================== -->
+<div class="grid grid-cols-1 gap-6">
+    <div class="card border-0 max-w-4xl">
+        <div class="card-body">
+            <div class="relative max-w-lg mx-auto mb-6">
+                <div class="absolute inset-x-0  h-1 bg-gray-200 dark:bg-gray-500 muted-progress-line"></div>
+                <div class="absolute inset-x-0  h-1 bg-cstm-primary transition-all duration-500 progress-line"
+                    style="width: <?= (($currentStep - 1) / 2) * 68 ?>%;"></div>
+                <div class="flex justify-between">
+                    <?php
+                    $i = 1;
+                    foreach ($steps as $details):
+                        $completed = $currentStep > $i;
+                        $active    = $currentStep === $i;
+                    ?>
+                        <div class="flex-1 text-center relative px-2">
+                            <div class="flex flex-col items-center justify-center">
+                                <div class="w-10 h-10 rounded-full border-4 flex items-center justify-center
+                                <?= $completed ? 'bg-cstm-primary border-cstm-primary text-white'
+                                    : ($active ? 'bg-white border-cstm-primary text-cstm-primary shadow-lg dark:bg-gray-600 outline-cstm-primary outline outline-1 outline-offset-1 box-shadow-cstm'
+                                        : 'bg-gray-200 border-gray-300 text-gray-500') ?>">
+                                    <?= $i ?>
+                                </div>
+                                <span class="mt-2 text-sm <?= ($active || $completed) ? 'text-neutral-600' : 'text-gray-600' ?>">
+                                    <?= $details['title'] ?>
+                                </span>
+                            </div>
+                        </div>
+                    <?php $i++;
+                    endforeach; ?>
+                </div>
             </div>
-            <?php if ($key < count($steps)): ?>
-                <div class="flex-1 h-1
-                    <?php echo $currentStep > (int)$key ? 'bg-cstm-primary' : 'bg-neutral-200 dark:bg-neutral-700'; ?>
-                "></div>
-            <?php endif; ?>
-        <?php endforeach; ?>
-    </div>
+            <!-- Step Content -->
+            <?php
+            if ($step === '1') {
+                include 'step-one.php';
+            } elseif ($step === '2') {
+                include 'step-two.php';
+            } else {
+                include 'step-three.php';
+            }
+            ?>
 
-    <div class="flex justify-between text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-2">
-        <?php foreach ($steps as $key => $stepInfo): ?>
-            <span class="<?php echo $key === $step ? 'font-bold text-cstm-primary' : ''; ?>"><?= htmlspecialchars($stepInfo['title']) ?></span>
-        <?php endforeach; ?>
-    </div>
-</div>
+            <div class="flex justify-between items-center mt-5 border-0">
+                <?php if ($currentStep > 1): ?>
+                    <a href="?step=<?= $prevStep ?>" class="btn btn-light flex items-center gap-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-neutral-700 dark:text-gray-200 dark:hover:bg-neutral-600 transition-colors">
+                        <iconify-icon icon="ic:round-arrow-back"></iconify-icon>
+                        Previous
+                    </a>
+                <?php else: ?>
+                    <div></div>
+                <?php endif; ?>
+                <?php if ($currentStep < count($steps)): ?>
+                    <a href="?step=<?= $nextStep ?>" class="btn btn-cstm-primary flex items-center gap-2 hidden">
+                        Next
+                        <iconify-icon icon="ic:round-arrow-forward"></iconify-icon>
+                    </a>
+                <?php endif; ?>
+            </div>
 
-<!-- ===================== STEP CONTENT ===================== -->
-<div class="max-w-4xl mx-auto px-4">
-    <?php
-    switch ($step) {
-        case '1':
-            include __DIR__ . '/step-one.php';
-            break;
-        case '2':
-            include __DIR__ . '/step-two.php';
-            break;
-        case '3':
-            include __DIR__ . '/step-three.php';
-            break;
-    }
-    ?>
-
-    <!-- Navigation buttons -->
-    <div class="mt-8 flex justify-between">
-        <?php if ($currentStep > 1): ?>
-            <a href="setup-wizard.php?step=<?= $prevStep ?>"
-                class="btn btn-outline-primary w-full md:w-auto flex items-center justify-center gap-2">
-                <iconify-icon icon="ic:round-arrow-back"></iconify-icon> Previous
-            </a>
-        <?php endif; ?>
-        <?php if ($currentStep < count($steps)): ?>
-            <a href="setup-wizard.php?step=<?= $nextStep ?>"
-                class="btn btn-cstm-primary w-full md:w-auto flex items-center justify-center gap-2">
-                Next <iconify-icon icon="ic:round-arrow-forward"></iconify-icon>
-            </a>
-        <?php else: ?>
-            <a href="dashboard.php"
-                class="btn btn-cstm-primary w-full md:w-auto flex items-center justify-center gap-2">
-                Go to Dashboard <iconify-icon icon="ic:round-arrow-forward"></iconify-icon>
-            </a>
-        <?php endif; ?>
+        </div>
     </div>
 </div>
 
-<?php
-include './partials/layouts/layoutBottom.php';
-?>
+<!-- ===================== JS ===================== -->
+<script>
+    window.APP_BASE = "<?= APP_BASE ?>";
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const supportBtn = document.getElementById('support-ticket-btn');
+        window.TicketPopup = window.TicketPopup || {};
+        window.TicketPopup.onSuccess = function() {
+            showAlert('Ticket created successfully!');
+        };
+
+        if (supportBtn && window.TicketPopup) {
+            window.TicketPopup.setInstanceId(
+                <?= json_encode($_SESSION['shop_id'] ?? null) ?>
+            );
+
+            // ✅ Owner email from DB
+            window.TicketPopup.setOwnerEmail(
+                <?= json_encode($ownerEmail ?? 'N/A') ?>
+            );
+
+            supportBtn.addEventListener('click', () => {
+                window.TicketPopup.open();
+            });
+        }
+    });
+</script>
+<?php if ($step === '1'): ?>
+    <script src="<?= APP_BASE ?>/assets/js/partials/setup-wizard-step1.js"></script>
+<?php elseif ($step === '2'): ?>
+    <script src="<?= APP_BASE ?>/assets/js/partials/setup-wizard-step2.js"></script>
+<?php else: ?>
+    <script src="<?= APP_BASE ?>/assets/js/partials/setup-wizard-step3.js"></script>
+<?php endif; ?>

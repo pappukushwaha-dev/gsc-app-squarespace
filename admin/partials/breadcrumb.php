@@ -1,8 +1,13 @@
-<?php
-// admin/partials/breadcrumb.php — Breadcrumb navigation
-?>
-<nav class="flex items-center space-x-2 text-sm text-neutral-500 dark:text-neutral-400 mb-4">
-    <a href="index.php" class="hover:text-cstm-primary">Dashboard</a>
-    <span>/</span>
-    <span><?= $breadcrumbTitle ?? 'Page' ?></span>
-</nav>
+<div class="flex flex-wrap items-center justify-between gap-2 mb-6">
+    <h6 class="font-semibold mb-0 dark:text-white"><?php echo $title;?></h6>
+    <ul class="flex items-center gap-[6px] flex-wrap">
+        <li class="font-medium">
+            <a href="index.php" class="flex items-center gap-2 hover:text-cstm-primary dark:text-white">
+                <iconify-icon icon="solar:home-smile-angle-outline" class="icon text-lg"></iconify-icon>
+                Dashboard
+            </a>
+        </li>
+        <li class="dark:text-white">-</li>
+        <li class="font-medium dark:text-white"><?php echo $subTitle;?></li>
+    </ul>
+</div>

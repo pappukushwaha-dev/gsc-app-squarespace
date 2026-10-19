@@ -17,7 +17,7 @@ class Stats {
             return 0;
         }
         try {
-            $stmt = $pdo->prepare("SELECT COUNT(DISTINCT shop_id) FROM SquarespaceSite");
+            $stmt = $pdo->prepare("SELECT COUNT(DISTINCT shop_id) FROM WixSite");
             $stmt->execute();
             return (int) $stmt->fetchColumn();
         } catch (PDOException $e) {
@@ -36,7 +36,7 @@ class Stats {
             return 0;
         }
         try {
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM SquarespaceSite WHERE event_type = 'APPINSTALLED'");
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM WixSite WHERE event_type = 'APPINSTALLED'");
             $stmt->execute();
             return (int) $stmt->fetchColumn();
         } catch (PDOException $e) {
@@ -103,7 +103,7 @@ class Stats {
         }
         try {
             // First, get the main store records
-            $stmt = $pdo->prepare("SELECT shop_id, site_display_name, owner_email, created_at, event_type FROM SquarespaceSite ORDER BY created_at DESC LIMIT :limit");
+            $stmt = $pdo->prepare("SELECT shop_id, site_display_name, owner_email, created_at, event_type FROM WixSite ORDER BY created_at DESC LIMIT :limit");
             $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
             $stmt->execute();
             $wixSites = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -120,7 +120,7 @@ class Stats {
             $placeholders = implode(',', array_fill(0, count($shopIds), '?'));
 
             // Fetch profile data for the selected stores
-            $profileQuery = "SELECT shop_id, logo_url, phone as phone_number, website_url FROM SquarespaceSiteProfile WHERE shop_id IN ($placeholders)";
+            $profileQuery = "SELECT shop_id, logo_url, phone as phone_number, website_url FROM WixSiteProfile WHERE shop_id IN ($placeholders)";
             $profileStmt = $pdo->prepare($profileQuery);
             $profileStmt->execute($shopIds);
             $profiles = $profileStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -240,7 +240,7 @@ class Stats {
         }
         try {
             $query = "SELECT MONTH(created_at) AS month_num, COUNT(DISTINCT shop_id) AS count
-                     FROM SquarespaceSite
+                     FROM WixSite
                      WHERE created_at >= NOW() - INTERVAL 1 YEAR
                      GROUP BY month_num
                      ORDER BY month_num ASC";

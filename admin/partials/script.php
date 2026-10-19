@@ -1,16 +1,29 @@
-<?php
-// admin/partials/script.php — Admin scripts
-?>
-<script>
-    function showAlert(message, type = 'info') {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `p-4 rounded mb-4 ${
-            type === 'success' ? 'bg-green-900 text-green-200 border border-green-700' :
-            type === 'error' ? 'bg-red-900 text-red-200 border border-red-700' :
-            'bg-blue-900 text-blue-200 border border-blue-700'
-        }`;
-        alertDiv.textContent = message;
-        document.body.insertBefore(alertDiv, document.body.firstChild);
-        setTimeout(() => alertDiv.remove(), 5000);
-    }
-</script>
+    <!-- jQuery library js -->
+    <script src="assets/js/lib/jquery-3.7.1.min.js"></script>
+    <!-- Apex Chart js -->
+    <script src="assets/js/lib/apexcharts.min.js"></script>
+    <!-- Data Table js -->
+    <script src="assets/js/lib/simple-datatables.min.js"></script>
+    <!-- Iconify Font js -->
+    <script src="assets/js/lib/iconify-icon.min.js"></script>
+    <!-- jQuery UI js -->
+    <script src="assets/js/lib/jquery-ui.min.js"></script>
+    <!-- Vector Map js -->
+    <script src="assets/js/lib/jquery-jvectormap-2.0.5.min.js"></script>
+    <script src="assets/js/lib/jquery-jvectormap-world-mill-en.js"></script>
+    <!-- Popup js -->
+    <script src="assets/js/lib/magnifc-popup.min.js"></script>
+    <!-- Slick Slider js -->
+    <script src="assets/js/lib/slick.min.js"></script>
+    <!-- prism js -->
+    <script src="assets/js/lib/prism.js"></script>
+    <!-- file upload js -->
+    <script src="assets/js/lib/file-upload.js"></script>
+    <!-- audio player -->
+    <script src="assets/js/lib/audioplayer.js"></script>
+
+    <script src="assets/js/flowbite.min.js"></script>
+    <!-- main js -->
+    <script src="assets/js/app.js"></script>
+
+    <?php echo (isset($script) ? $script   : '')?>

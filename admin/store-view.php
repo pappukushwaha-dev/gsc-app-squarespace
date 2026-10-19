@@ -30,9 +30,9 @@ if ($shopId) {
     $stmt = $pdo->prepare("
         SELECT
             ws.shop_id,
-            ws.domain AS shop_domain,
-            ws.site_display_name AS shop_name,
-            ws.owner_email AS shop_mail,
+            ws.shop_domain,
+            ws.shop_name,
+            ws.email AS shop_mail,
             wsp.company_name,
             wsp.logo_url,
             wsp.description,

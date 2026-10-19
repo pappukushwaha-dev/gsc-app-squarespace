@@ -1,19 +1,16 @@
 <?php
-// mcp-config.php — MCP server configuration
-declare(strict_types=1);
+/**
+ * Orgalytics GSC MCP connector settings (Ecwid app).
+ * The secret must match MCP_INTERNAL_SECRET in the MCP server's .env.
+ */
+define('MCP_SERVER_URL', 'https://mcp.orgalytics.ai');
 
-header('Content-Type: application/json');
+// Fallback origin for server-side API calls when Cloudflare blocks the loop
+// through the public URL. Leave '' to disable.
+define('MCP_INTERNAL_FALLBACK_URL', 'https://127.0.0.1');
 
-$config = [
-    'platform' => 'squarespace',
-    'mcp_endpoint' => 'https://your-domain.com/gsc-mcp',
-    'tools' => [
-        'search_analytics',
-        'list_properties',
-        'list_sitemaps',
-        'growth_opportunities',
-        'find_cannibalization',
-    ],
-];
+// This app's identity on the MCP server
+define('MCP_PLATFORM', 'ecwid');
+define('MCP_GA_COLUMN', 'instance_id');   // google_accounts store column (wix = instanceId)
 
-echo json_encode($config, JSON_PRETTY_PRINT);
+define('MCP_INTERNAL_SECRET', 'CHANGE_ME_PASTE_SECRET_HERE');

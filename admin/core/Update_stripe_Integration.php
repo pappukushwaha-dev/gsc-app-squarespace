@@ -1,14 +1,11 @@
 <?php
-// admin/core/Update_stripe_Integration.php — Save Stripe credentials (encrypted)
-// Same pattern as Wix/Shopify/BigCommerce admin/core/Update_stripe_Integration.php
-
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
 require_once __DIR__ . '/../../includes/config.php';
-require_once __DIR__ . '/../../includes/credentials.php'; // USE GLOBAL ENCRYPTION
-require_once __DIR__ . '/SessionManager.php';
-require_once __DIR__ . '/AuthController.php';
+require_once __DIR__ . '/../../includes/credentials.php'; // ✅ USE GLOBAL ENCRYPTION
+require_once 'SessionManager.php';
+require_once 'AuthController.php';
 
 SessionManager::startDatabaseSession();
 
@@ -32,7 +29,7 @@ $data = [
 // validation
 foreach ($data as $value) {
     if ($value === '') {
-        header('Location: ../settings.php?tab=stripe&status=error');
+        header('Location: ../settings.php?tab=stripe-integration&status=error');
         exit;
     }
 }
@@ -49,11 +46,11 @@ $pdo->beginTransaction();
 foreach ($data as $key => $value) {
     $stmt->execute([
         ':key_name' => $key,
-        ':value'    => encrypt($value, ENCRYPTION_KEY) // SAME SYSTEM
+        ':value'    => encrypt($value, ENCRYPTION_KEY) // ✅ SAME SYSTEM
     ]);
 }
 
 $pdo->commit();
 
-header('Location: ../settings.php?tab=stripe&status=success');
+header('Location: ../settings.php?tab=stripe-integration&status=success');
 exit;

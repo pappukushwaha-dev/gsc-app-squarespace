@@ -1,51 +1,133 @@
 <?php
-// other-apps.php — Other apps page
-declare(strict_types=1);
 
-$title = 'Other Apps';
+declare(strict_types=1);
+require_once __DIR__ . '/includes/config.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-require_once __DIR__ . '/includes/config.php';
+
+$title = 'Our Other Apps';
+$subTitle = 'Other Apps';
+
+// --- Get Instance ID (if needed) ---
+$shopId = $_SESSION['shop_id'] ?? $_SESSION['shop_id'] ?? ($_GET['shop_id'] ?? null);
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($title) ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-</head>
-<body class="bg-neutral-100 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 min-h-screen">
-    <nav class="border-b border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800">
-        <div class="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
-            <a href="index.php" class="font-bold text-xl">GSC — Squarespace</a>
-            <a href="index.php" class="text-sm hover:text-cstm-primary">Back to Home</a>
-        </div>
-    </nav>
 
-    <main class="max-w-4xl mx-auto px-6 py-12">
-        <h1 class="text-2xl font-bold mb-8">Our Other Apps</h1>
-        <p class="text-neutral-600 dark:text-neutral-400 mb-8">
-            Check out our other Google Search Console apps for different platforms.
-        </p>
+<?php include './partials/layouts/layoutTop.php' ?>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="bg-white dark:bg-neutral-800 p-6 rounded-lg border border-neutral-200 dark:border-neutral-700">
-                <h3 class="font-bold mb-2">Wix</h3>
-                <p class="text-sm text-neutral-600 dark:text-neutral-400">GSC app for Wix stores</p>
-            </div>
-            <div class="bg-white dark:bg-neutral-800 p-6 rounded-lg border border-neutral-200 dark:border-neutral-700">
-                <h3 class="font-bold mb-2">Shopify</h3>
-                <p class="text-sm text-neutral-600 dark:text-neutral-400">GSC app for Shopify stores</p>
-            </div>
-            <div class="bg-white dark:bg-neutral-800 p-6 rounded-lg border border-neutral-200 dark:border-neutral-700">
-                <h3 class="font-bold mb-2">BigCommerce</h3>
-                <p class="text-sm text-neutral-600 dark:text-neutral-400">GSC app for BigCommerce stores</p>
-            </div>
-        </div>
-    </main>
-</body>
-</html>
+<div class="">
+    <div id="appsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Apps will be injected here -->
+    </div>
+
+    <div class="flex items-center justify-between flex-wrap gap-2 mt-6">
+        <span id="appsPaginationInfo" class="text-sm"></span>
+        <ul class="pagination flex flex-wrap items-center gap-2 justify-center" id="appsPagination"></ul>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const appsGrid = document.getElementById("appsGrid");
+        const paginationInfo = document.getElementById("appsPaginationInfo");
+        const paginationList = document.getElementById("appsPagination");
+
+        let allApps = [];
+        let currentPage = 1;
+        let itemsPerPage = 6; // show 6 apps per page
+
+        const renderApps = (apps, startIndex) => {
+            appsGrid.innerHTML = "";
+            if (apps.length === 0) {
+                appsGrid.innerHTML = `
+              <div class="col-span-full text-center py-12 text-neutral-500 dark:text-neutral-400">
+                <p class="text-lg">No apps found.</p>
+              </div>`;
+                return;
+            }
+
+            apps.forEach(app => {
+                const card = document.createElement("div");
+                card.className = "bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm hover:shadow-md transition border dark:border-neutral-600 dark:bg-neutral-900";
+                card.innerHTML = `
+                <div class="flex items-start justify-between mb-3 gap-4">
+                    <img src="${app.image_url}" alt="${app.title}" class="h-12 w-auto">
+                </div>
+                <h3 class="text-lg font-semibold text-red-600 dark:text-red-400 mb-2">${app.title}</h3>
+                <p class="text-base text-gray-700 dark:text-gray-300 mb-4">${app.description}</p>
+                 ${app.subtitle ? ` <div class="flex items-center text-xs text-gray-700 dark:text-gray-200 mb-4">
+                                <i class="fa-solid fa-star text-yellow-400 mr-1"></i>
+                                ${app.subtitle}
+                            </div>` : ""}
+                <a href="api/redirect-other-app.php?app_id=${app.id}" target="_blank"
+                   class="inline-flex items-center text-cstm-primary drk-text-cstm-primary hover:underline font-medium text-sm">
+                   ${app.button_text || "Learn More"} <span class="ml-1 drk-text-cstm-primary">→</span>
+                </a>
+            `;
+                appsGrid.appendChild(card);
+            });
+        };
+
+        const updatePagination = () => {
+            const totalItems = allApps.length;
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = Math.min(start + itemsPerPage, totalItems);
+            const pageApps = allApps.slice(start, end);
+
+            renderApps(pageApps, start);
+            paginationInfo.textContent = totalItems > 0 ?
+                `Showing ${start + 1} to ${end} of ${totalItems} apps` :
+                "No entries";
+
+            paginationList.innerHTML = "";
+            if (totalPages > 1) {
+                const createPageItem = (page, text, isActive = false, isDisabled = false) => {
+                    const li = document.createElement("li");
+                    const a = document.createElement("a");
+                    a.className = `page-link h-8 w-8 flex items-center justify-center rounded-lg text-sm ${
+                    isActive ? "bg-cstm-primary text-white" : "bg-neutral-300 dark:bg-neutral-600"
+                }`;
+                    if (isDisabled) {
+                        a.classList.add("pointer-events-none", "opacity-50");
+                    }
+                    a.innerHTML = text;
+                    a.onclick = () => {
+                        if (!isDisabled) {
+                            currentPage = page;
+                            updatePagination();
+                        }
+                    };
+                    li.appendChild(a);
+                    paginationList.appendChild(li);
+                };
+
+                createPageItem(currentPage - 1, '<iconify-icon icon="ep:d-arrow-left"></iconify-icon>', false, currentPage === 1);
+                for (let i = 1; i <= totalPages; i++) {
+                    createPageItem(i, i, i === currentPage);
+                }
+                createPageItem(currentPage + 1, '<iconify-icon icon="ep:d-arrow-right"></iconify-icon>', false, currentPage === totalPages);
+            }
+        };
+
+        // Fetch apps from API
+        fetch("./api/dbSchema/other_apps.php")
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && Array.isArray(data.data)) {
+                    allApps = data.data;
+                    updatePagination();
+                } else {
+                    appsGrid.innerHTML = `<div class="col-span-full text-center py-12 text-red-500">Failed to load apps.</div>`;
+                }
+            })
+            .catch(err => {
+                console.error("Apps fetch failed:", err);
+                appsGrid.innerHTML = `<div class="col-span-full text-center py-12 text-red-500">Error loading apps.</div>`;
+            });
+    });
+</script>
+
+<?php include './partials/layouts/layoutBottom.php' ?>

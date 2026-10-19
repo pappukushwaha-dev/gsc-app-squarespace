@@ -1,11 +1,34 @@
+</div>
+
+<?php include './partials/footer.php' ?>
+</main>
+
+<?php include './partials/script.php' ?>
 <?php
-// partials/layouts/layoutBottom.php — Admin layout bottom
+// Prepare variables for ticket popup
+if (!isset($siteUrl)) {
+    $siteUrl = '';
+    if (isset($shopId) && $shopId) {
+        try {
+            $stmt = $pdo->prepare("
+                SELECT shop_domain
+                FROM SquarespaceSite
+                WHERE shop_id = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$shopId]);
+            $shopDomain = $stmt->fetchColumn();
+            if ($shopDomain) {
+                $siteUrl = 'https://' . $shopDomain;
+            }
+        } catch (Throwable $e) {
+            // Ignore errors
+        }
+    }
+}
+include './partials/ticket-submit-popup.php';
 ?>
-    </main>
-    <footer class="border-t border-neutral-700 bg-neutral-800 py-6 mt-auto">
-        <div class="max-w-7xl mx-auto px-4 text-center">
-            <p class="text-sm text-neutral-400">&copy; 2026 GSC Admin — Squarespace</p>
-        </div>
-    </footer>
+<div id="alert-container" class="fixed top-4 right-1/2 translate-x-1/2 space-y-3 z-50"></div>
+
 </body>
 </html>

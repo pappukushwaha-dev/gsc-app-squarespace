@@ -1,20 +1,17 @@
 <?php
-// admin/core/UpdateGoogleSettings.php — Save Google OAuth credentials
-// Same pattern as Wix/Shopify/BigCommerce admin/core/UpdateGoogleSettings.php
-
-require_once __DIR__ . '/../../includes/credentials.php';
-require_once __DIR__ . '/../../includes/google/get_account.php'; // not strictly needed but consistent
+require_once __DIR__ . '/../../includes/credentials.php';  // <-- THE FIX
+require_once __DIR__ . '/SessionManager.php';
+require_once __DIR__ . '/AuthController.php';
 
 SessionManager::startDatabaseSession();
 
-// Auth check
 if (!AuthController::isAuthenticated()) {
-    header('Location: ../sign-in.php');
+    header('Location: ' . APP_BASE . '/admin/sign-in.php');
     exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ../settings.php?tab=google');
+    header('Location: ' . APP_BASE . '/admin/settings.php');
     exit;
 }
 
@@ -30,7 +27,7 @@ if ($redirectUri === '')  $errors[] = "Redirect URI is required";
 
 if (!empty($errors)) {
     $_SESSION['flash_error'] = implode('<br>', $errors);
-    header('Location: ../settings.php?tab=google');
+    header('Location: ' . APP_BASE . '/admin/settings.php#google-settings');
     exit;
 }
 
@@ -52,10 +49,10 @@ try {
             WHERE id = :id
         ");
         $stmt->execute([
-            ':client_id'     => $clientId,
+            ':client_id' => $clientId,
             ':client_secret' => $encSecret,
-            ':redirect_uri'  => $redirectUri,
-            ':id'            => $exists
+            ':redirect_uri' => $redirectUri,
+            ':id' => $exists
         ]);
     } else {
         $stmt = $pdo->prepare("
@@ -63,19 +60,19 @@ try {
             VALUES (:client_id, :client_secret, :redirect_uri)
         ");
         $stmt->execute([
-            ':client_id'     => $clientId,
+            ':client_id' => $clientId,
             ':client_secret' => $encSecret,
-            ':redirect_uri'  => $redirectUri
+            ':redirect_uri' => $redirectUri
         ]);
     }
 
     $_SESSION['flash_success'] = "Google settings saved successfully!";
-    header('Location: ../settings.php?tab=google');
+    header('Location: ' . APP_BASE . '/admin/settings.php#google-settings');
     exit;
 
 } catch (Exception $e) {
     error_log("Google Settings Save Error: " . $e->getMessage());
     $_SESSION['flash_error'] = "Error saving Google settings: " . $e->getMessage();
-    header('Location: ../settings.php?tab=google');
+    header('Location: ' . APP_BASE . '/admin/settings.php#google-settings');
     exit;
 }

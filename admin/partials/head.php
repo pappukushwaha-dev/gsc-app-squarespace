@@ -1,31 +1,52 @@
 <?php
-// admin/partials/head.php — Admin head section
-$title = $title ?? 'Admin — Squarespace';
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+require_once __DIR__ . '/../core/HeaderData.php'; // Include HeaderData.php to get the logo path
+// Fetch the logo path dynamically from admin settings
+$adminData = get_app_settings($pdo);
+$apptitle = $adminData['brand_name'] ?? ''; // Fallback if not found
+$faviconPath = $adminData['favicon_path'] ?? ''; // Fallback if not found
 ?>
-<!DOCTYPE html>
-<html lang="en">
+
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($title) ?></title>
-    <script src="https://unpkg.com/@iconify/iconify"></script>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <style>
-        .text-cstm-primary { color: #3b5bfd; }
-        .bg-cstm-primary { background-color: #3b5bfd; }
-        .dark { background-color: #111827; color: #f1f5f9; }
-    </style>
+    <title><?= htmlspecialchars($apptitle ?? '') ?></title>
+    <link rel="icon" type="image/png" href="<?= htmlspecialchars($faviconPath, ENT_QUOTES) ?>" sizes="16x16">
+    <!-- google fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+    <!-- remix icon font css  -->
+    <link rel="stylesheet" href="assets/css/remixicon.css">
+    <!-- Apex Chart css -->
+    <link rel="stylesheet" href="assets/css/lib/apexcharts.css">
+    <!-- Data Table css -->
+    <link rel="stylesheet" href="assets/css/lib/dataTables.min.css">
+    <!-- Text Editor css -->
+    <link rel="stylesheet" href="assets/css/lib/editor-katex.min.css">
+    <link rel="stylesheet" href="assets/css/lib/editor.atom-one-dark.min.css">
+    <link rel="stylesheet" href="assets/css/lib/editor.quill.snow.css">
+    <!-- Date picker css -->
+    <link rel="stylesheet" href="assets/css/lib/flatpickr.min.css">
+    <!-- Calendar css -->
+    <link rel="stylesheet" href="assets/css/lib/full-calendar.css">
+    <!-- Vector Map css -->
+    <link rel="stylesheet" href="assets/css/lib/jquery-jvectormap-2.0.5.css">
+    <!-- Popup css -->
+    <link rel="stylesheet" href="assets/css/lib/magnific-popup.css">
+    <!-- Slick Slider css -->
+    <link rel="stylesheet" href="assets/css/lib/slick.css">
+    <!-- prism css -->
+    <link rel="stylesheet" href="assets/css/lib/prism.css">
+    <!-- file upload css -->
+    <link rel="stylesheet" href="assets/css/lib/file-upload.css">
+
+    <link rel="stylesheet" href="assets/css/lib/audioplayer.css">
+    <!-- main css -->
+    <link rel="stylesheet" href="assets/css/style.css">
+    <!-- custom css -->
+    <link rel="stylesheet" href="assets/css/custom-style.css">
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
-<body class="dark">
-    <nav class="border-b border-neutral-700 bg-neutral-800">
-        <div class="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
-            <a href="index.php" class="font-bold text-xl text-white">GSC Admin — Squarespace</a>
-            <div class="flex items-center gap-4">
-                <a href="stores.php" class="text-sm text-neutral-300 hover:text-white">Stores</a>
-                <a href="tickets.php" class="text-sm text-neutral-300 hover:text-white">Tickets</a>
-                <a href="settings.php" class="text-sm text-neutral-300 hover:text-white">Settings</a>
-                <a href="logout.php" class="text-sm text-red-400 hover:text-red-300">Logout</a>
-            </div>
-        </div>
-    </nav>
-    <main class="max-w-7xl mx-auto px-4 py-6">

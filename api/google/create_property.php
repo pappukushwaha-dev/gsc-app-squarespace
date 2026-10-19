@@ -1,13 +1,9 @@
 <?php
-// api/google/create_property.php — Create GSC URL-prefix property for Squarespace
-// Same pattern as Wix/Shopify api/google/create_property.php
-
 declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../includes/config.php';
-require_once __DIR__ . '/../../includes/credentials.php';
 require_once __DIR__ . '/../../includes/google/get_account.php';
 require_once __DIR__ . '/../../includes/google/token_manager.php';
 
@@ -20,36 +16,52 @@ if (session_status() === PHP_SESSION_NONE) {
 ========================================================== */
 $data = json_decode(file_get_contents('php://input'), true) ?: [];
 
-$shopId = $data['shopId'] ?? $_SESSION['shop_id'] ?? null;
-$domain     = $data['domain'] ?? null;
+$shopId =
+    $data['shop_id']
+    ?? $data['shopId']
+    ?? $_SESSION['shop_id']
+    ?? $_SESSION['shop_id']
+    ?? null;
+
+$domain = $data['domain'] ?? null;
 
 if (!$shopId || !$domain) {
-    echo json_encode(['success' => false, 'error' => 'missing_parameters']);
+    echo json_encode([
+        'success' => false,
+        'error'   => 'missing_parameters'
+    ]);
     exit;
 }
 
 /* ==========================================================
-   NORMALIZE PROPERTY (URL-PREFIX)
+   NORMALIZE URL-PREFIX PROPERTY
 ========================================================== */
+// $domain   = strtolower(trim($domain));
+// $property = 'https://' . $domain . '/';
+
+// The caller may send a bare host or a full URL depending on which page it
+// came from, so the scheme is added only when it is missing. Blindly
+// prefixing produced 'https://https://example.com//', which Google rejects
+// as an invalid site URL.
 $domain = strtolower(trim($domain));
 
 if (!preg_match('~^https?://~i', $domain)) {
     $domain = 'https://' . $domain;
 }
 
+// Search Console wants exactly one trailing slash on a URL-prefix property.
 $property = rtrim($domain, '/') . '/';
 
 /* ==========================================================
    LOAD GOOGLE ACCOUNT
 ========================================================== */
-$google = getGoogleAccountByUser($shopId);
+$google = getGoogleAccountByInstance($shopId);
 
-if (
-    !$google ||
-    $google['connected'] != 1 ||
-    (empty($google['access_token']) && empty($google['refresh_token']))
-) {
-    echo json_encode(['success' => false, 'error' => 'account_needs_reconnect']);
+if (!$google || empty($google['access_token'])) {
+    echo json_encode([
+        'success' => false,
+        'error'   => 'We are unable to process your request. Please return to the previous steps, click on "Disconnect this account," and then reconnect your account.'
+    ]);
     exit;
 }
 
@@ -58,15 +70,19 @@ if (
 ========================================================== */
 $accountId   = (int) $google['id'];
 $tokenResult = ensureAccessToken($accountId, 120);
+
 $accessToken = $tokenResult['access_token'] ?? $google['access_token'];
 
 if (empty($accessToken)) {
-    echo json_encode(['success' => false, 'error' => 'account_needs_reconnect']);
+    echo json_encode([
+        'success' => false,
+        'error'   => 'We are unable to process your request. Please return to the previous steps, click on "Disconnect this account," and then reconnect your account.'
+    ]);
     exit;
 }
 
 /* ==========================================================
-   CREATE URL-PREFIX PROPERTY
+   CREATE URL-PREFIX PROPERTY (SEARCH CONSOLE API)
 ========================================================== */
 $apiUrl = 'https://www.googleapis.com/webmasters/v3/sites/' . rawurlencode($property);
 
@@ -76,18 +92,26 @@ curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_HTTPHEADER     => [
         "Authorization: Bearer {$accessToken}",
-        "Content-Type: application/json",
+        "Content-Type: application/json"
     ],
     CURLOPT_TIMEOUT        => 15,
+    CURLOPT_USERAGENT      => 'Shopify-GSC/1.0'
 ]);
 
 $response = curl_exec($ch);
-$http     = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+$http     = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 $curlErr  = curl_error($ch);
 curl_close($ch);
 
+/* ==========================================================
+   NETWORK FAILURE
+========================================================== */
 if ($curlErr) {
-    echo json_encode(['success' => false, 'error' => 'network_error', 'message' => $curlErr]);
+    echo json_encode([
+        'success' => false,
+        'error'   => 'network_error',
+        'message' => $curlErr
+    ]);
     exit;
 }
 
@@ -95,7 +119,10 @@ if ($curlErr) {
    AUTH FAILURE
 ========================================================== */
 if ($http === 401 || $http === 403) {
-    echo json_encode(['success' => false, 'error' => 'account_needs_reconnect']);
+    echo json_encode([
+        'success' => false,
+        'error'   => 'We are unable to process your request. Please return to the previous steps, click on "Disconnect this account," and then reconnect your account.'
+    ]);
     exit;
 }
 
@@ -103,12 +130,19 @@ if ($http === 401 || $http === 403) {
    SUCCESS / ALREADY EXISTS
 ========================================================== */
 if ($http >= 200 && $http < 300) {
-    echo json_encode(['success' => true, 'property' => $property]);
+    echo json_encode([
+        'success'  => true,
+        'property' => $property
+    ]);
     exit;
 }
 
 if ($http === 409) {
-    echo json_encode(['success' => true, 'property' => $property, 'note' => 'already_exists']);
+    echo json_encode([
+        'success'  => true,
+        'property' => $property,
+        'note'     => 'already_exists'
+    ]);
     exit;
 }
 
@@ -119,6 +153,6 @@ echo json_encode([
     'success' => false,
     'error'   => 'google_api_error',
     'http'    => $http,
-    'message' => substr((string) $response, 0, 200),
+    'message' => substr((string) $response, 0, 200)
 ]);
 exit;

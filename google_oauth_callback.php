@@ -1,33 +1,35 @@
 <?php
-// google_oauth_callback.php — Google OAuth callback for Squarespace
-// Same pattern as BigCommerce/Wix google_oauth_callback.php
-
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 session_start();
 
+// Load Google SDK + DB + decrypt helpers
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/credentials.php';
+require_once __DIR__ . '/includes/google/save_token.php';
 
 global $pdo;
 
 /* ==========================================================
-   1. Resolve INSTANCE ID from OAuth state (Squarespace)
+   1️⃣ Resolve INSTANCE ID from OAuth state (BigCommerce)
 ========================================================== */
-$shopId = $_GET['state'] ?? null;
 
-if (!$shopId) {
-    die('Missing shop_id parameter.');
+$instanceId = $_GET['state'] ?? null;
+
+if (!$instanceId) {
+    die('Missing instance parameter.');
 }
 
-$_SESSION['shop_id'] = $shopId;
+// Restore session safely
+$_SESSION['instance_id'] = $instanceId;
 
 /* ==========================================================
-   2. Validate OAuth code
+   2️⃣ Validate OAuth code
 ========================================================== */
+
 if (!isset($_GET['code'])) {
     die("Missing 'code' parameter.");
 }
@@ -35,8 +37,9 @@ if (!isset($_GET['code'])) {
 $code = $_GET['code'];
 
 /* ==========================================================
-   3. Load Google credentials from DB
+   3️⃣ Load Google credentials from DB
 ========================================================== */
+
 $stmt = $pdo->prepare("SELECT client_id, client_secret, redirect_uri FROM google_settings LIMIT 1");
 $stmt->execute();
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -50,18 +53,23 @@ $clientSecretEnc = $row['client_secret'];
 $redirectUri     = $row['redirect_uri'];
 
 /* ==========================================================
-   4. Decrypt client secret
+   4️⃣ Decrypt client secret
 ========================================================== */
+
 $clientSecret = null;
 
 if (!empty($clientSecretEnc)) {
+
     if (!defined('ENCRYPTION_KEY')) {
+        // Fallback to plain text
         $clientSecret = $clientSecretEnc;
     } else {
         $decrypted = decrypt($clientSecretEnc, ENCRYPTION_KEY);
+
         if ($decrypted !== false && $decrypted !== null && $decrypted !== '') {
             $clientSecret = $decrypted;
         } else {
+            // Possibly stored as plain text
             if (strpos($clientSecretEnc, 'GOCSPX-') === 0 || strlen($clientSecretEnc) > 20) {
                 $clientSecret = $clientSecretEnc;
             } else {
@@ -71,68 +79,92 @@ if (!empty($clientSecretEnc)) {
     }
 }
 
+if (empty($clientSecret)) {
+    die("Client secret is missing or invalid.");
+}
+
 /* ==========================================================
-   5. Exchange code for tokens
+   5️⃣ Build Google Client
 ========================================================== */
+
 $client = new Google_Client();
 $client->setClientId($clientId);
 $client->setClientSecret($clientSecret);
 $client->setRedirectUri($redirectUri);
 
+$client->setScopes([
+    Google_Service_Webmasters::WEBMASTERS,
+    Google_Service_SiteVerification::SITEVERIFICATION,
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/userinfo.profile'
+]);
+
+$client->setAccessType('offline');
+$client->setPrompt('consent');
+$client->setIncludeGrantedScopes(true);
+
+/* ==========================================================
+   6️⃣ Exchange code for token
+========================================================== */
+
 try {
     $token = $client->fetchAccessTokenWithAuthCode($code);
 } catch (Exception $e) {
-    die("Token exchange failed: " . $e->getMessage());
+    die("Google OAuth Error: " . $e->getMessage());
 }
 
 if (isset($token['error'])) {
-    die("Token error: " . $token['error']);
+    $errorMsg = $token['error_description'] ?? $token['error'];
+
+    if ($token['error'] === 'invalid_grant') {
+        die("Authorization code expired. Please reconnect.");
+    }
+
+    if ($token['error'] === 'redirect_uri_mismatch') {
+        die("Redirect URI mismatch. Check Google Cloud Console.");
+    }
+
+    die("Google OAuth Error: " . htmlspecialchars($errorMsg));
 }
 
 /* ==========================================================
-   6. Save tokens to google_accounts table
+   7️⃣ Get Google user info
 ========================================================== */
-$accessToken  = $token['access_token'] ?? null;
-$refreshToken = $token['refresh_token'] ?? null;
-$expiresIn    = $token['expires_in'] ?? null;
-$expiresAt    = $expiresIn ? date('Y-m-d H:i:s', time() + (int)$expiresIn) : null;
 
-// Check if google_accounts record exists for this instance
-$check = $pdo->prepare("SELECT id FROM google_accounts WHERE shop_id = :iid LIMIT 1");
-$check->execute([':iid' => $shopId]);
-$exists = $check->fetchColumn();
+$oauth = new Google_Service_Oauth2($client);
+$userInfo = $oauth->userinfo->get();
 
-if ($exists) {
-    $stmt = $pdo->prepare("
-        UPDATE google_accounts
-        SET access_token = :at,
-            refresh_token = :rt,
-            token_expires_at = :exp,
-            connected = 1,
-            updated_at = NOW()
-        WHERE shop_id = :iid
-    ");
-    $stmt->execute([
-        ':at'  => $accessToken,
-        ':rt'  => $refreshToken,
-        ':exp' => $expiresAt,
-        ':iid' => $shopId,
-    ]);
-} else {
-    $stmt = $pdo->prepare("
-        INSERT INTO google_accounts
-            (shop_id, access_token, refresh_token, token_expires_at, connected, created_at)
-        VALUES (:iid, :at, :rt, :exp, 1, NOW())
-    ");
-    $stmt->execute([
-        ':iid' => $shopId,
-        ':at'  => $accessToken,
-        ':rt'  => $refreshToken,
-        ':exp' => $expiresAt,
-    ]);
-}
+$userInfoArray = [
+    'sub'   => $userInfo->id,
+    'email' => $userInfo->email
+];
 
-$_SESSION['google_connected'] = true;
+/* ==========================================================
+   8️⃣ Save token for this instance
+========================================================== */
 
-header('Location: setup-wizard.php?step=2');
+google_save_token($pdo, $instanceId, $token, $userInfoArray);
+
+/* ==========================================================
+   9️⃣ Redirect to Setup Step 2
+========================================================== */
+ $stepUrl = "https://makkpressapps.com" . APP_BASE . "/api/update-step.php";
+
+        $postData = [
+            'instanceId' => $instanceId,
+            'step'       => 1
+        ];
+
+        $ch = curl_init($stepUrl);
+
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => http_build_query($postData),
+            CURLOPT_TIMEOUT        => 10,
+        ]);
+
+        $resp = curl_exec($ch);
+        curl_close($ch);
+header("Location: " . APP_URL . "setup-wizard.php?instanceId=" . urlencode($instanceId) . "&step=2");
 exit;

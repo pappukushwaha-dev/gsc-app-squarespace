@@ -1,27 +1,23 @@
+
 <?php
-// admin/core/email/delete-category.php — Delete email category
-declare(strict_types=1);
+// email/delete-category.php
+require_once __DIR__ . '/../../../includes/config.php'; // Include database connection
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $categoryId = $data['id'];
+    
+    // Check if category exists before attempting deletion
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM email_categories WHERE id = :id");
+    $stmt->execute(['id' => $categoryId]);
+    if ($stmt->fetchColumn() == 0) {
+        echo json_encode(['success' => false, 'message' => 'Category not found']);
+        exit;
+    }
 
-header('Content-Type: application/json');
+    // Perform deletion (use prepared statements to prevent SQL injection)
+    $stmt = $pdo->prepare("DELETE FROM email_categories WHERE id = :id");
+    $stmt->execute(['id' => $categoryId]);
 
-require_once __DIR__ . '/../../../includes/config.php';
-
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['success' => false, 'error' => 'method_not_allowed']);
-    exit;
-}
-
-$data = json_decode(file_get_contents('php://input'), true) ?: [];
-$categoryId = $data['category_id'] ?? null;
-
-if (!$categoryId) {
-    echo json_encode(['success' => false, 'error' => 'missing_category_id']);
-    exit;
-}
-
-try {
-    $pdo->prepare("DELETE FROM email_categories WHERE id = ?")->execute([$categoryId]);
-    echo json_encode(['success' => true, 'message' => 'Category deleted']);
-} catch (Exception $e) {
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    // Return success response
+    echo json_encode(['success' => true]);
 }

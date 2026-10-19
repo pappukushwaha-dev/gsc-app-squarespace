@@ -1,27 +1,23 @@
+
 <?php
-// admin/core/email/delete-template.php — Delete email template
-declare(strict_types=1);
+// email/delete-template.php
+require_once __DIR__ . '/../../../includes/config.php'; // Include database connection
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $templateId = $data['id'];
 
-header('Content-Type: application/json');
+    // Check if template exists before attempting deletion
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM email_templates WHERE id = :id");
+    $stmt->execute(['id' => $templateId]);
+    if ($stmt->fetchColumn() == 0) {
+        echo json_encode(['success' => false, 'message' => 'Template not found']);
+        exit;
+    }
 
-require_once __DIR__ . '/../../../includes/config.php';
+    // Perform deletion (use prepared statements to prevent SQL injection)
+    $stmt = $pdo->prepare("DELETE FROM email_templates WHERE id = :id");
+    $stmt->execute(['id' => $templateId]);
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['success' => false, 'error' => 'method_not_allowed']);
-    exit;
-}
-
-$data = json_decode(file_get_contents('php://input'), true) ?: [];
-$templateId = $data['template_id'] ?? null;
-
-if (!$templateId) {
-    echo json_encode(['success' => false, 'error' => 'missing_template_id']);
-    exit;
-}
-
-try {
-    $pdo->prepare("DELETE FROM email_templates WHERE id = ?")->execute([$templateId]);
-    echo json_encode(['success' => true, 'message' => 'Template deleted']);
-} catch (Exception $e) {
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    // Return success response
+    echo json_encode(['success' => true]);
 }

@@ -1,11 +1,10 @@
-<?php
-// admin/partials/layouts/layoutBottom.php — Admin layout bottom
-?>
-    </main>
-    <footer class="border-t border-neutral-700 bg-neutral-800 py-6 mt-auto">
-        <div class="max-w-7xl mx-auto px-4 text-center">
-            <p class="text-sm text-neutral-400">&copy; 2026 GSC Admin — Squarespace</p>
-        </div>
-    </footer>
+</div>
+
+<?php include './partials/footer.php' ?>
+</main>
+
+<?php include './partials/script.php' ?>
+<div id="alert-container" class="fixed top-64 right-[35%] space-y-3 z-50"></div>
+
 </body>
 </html>

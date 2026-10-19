@@ -1,32 +1,16 @@
-# Squarespace GSC App
-# Apache configuration
-
 <IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteBase /gsc-app-squarespace/
+RewriteEngine On
 
-    # Redirect trailing slashes
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_URI} (.+)/$
-    RewriteRule ^(.+)/$ /$1 [R=301,L]
+# Preserve Authorization header
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-    # Route requests
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^ index.php [L]
+# 🚨 IMPORTANT: allow webhooks to pass through untouched
+RewriteRule ^webhook(/.*)?$ - [L]
+
+RewriteBase /bigcommerce/googlesearchconsole/
+
+RewriteRule ^index\.php$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /bigcommerce/googlesearchconsole/index.php [L]
 </IfModule>
-
-<IfModule mod_security.c>
-    SecFilterEngine Off
-    SecFilterScanPOST Off
-</IfModule>
-
-<FilesMatch "\.(php)$">
-    Order allow,deny
-    Allow from all
-</FilesMatch>
-
-php_value upload_max_filesize 64M
-php_value post_max_size 64M
-php_value max_execution_time 300
-php_value max_input_time 300

@@ -143,7 +143,7 @@ $qs = function (array $over = []) use ($appFilter, $q): string {
 
         <?php if ($loadErr): ?>
             <div class="card p-6 rounded-xl">
-                <p class="text-danger-600">Could not read the tracking table. Has 01-squarespace-other-app-clicks.sql been run on this database?</p>
+                <p class="text-danger-600">Could not read the tracking table. Has 01-ecwid-other-app-clicks.sql been run on this database?</p>
             </div>
         <?php else: ?>
 

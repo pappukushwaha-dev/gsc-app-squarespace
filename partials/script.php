@@ -1,17 +1,40 @@
-<?php
-// partials/script.php — Common scripts
-?>
-<script>
-    // Global utility functions
-    function showAlert(message, type = 'info') {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `p-4 rounded mb-4 ${
-            type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
-            type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
-            'bg-blue-50 text-blue-800 border border-blue-200'
-        }`;
-        alertDiv.textContent = message;
-        document.body.insertBefore(alertDiv, document.body.firstChild);
-        setTimeout(() => alertDiv.remove(), 5000);
-    }
-</script>
+<!-- jQuery -->
+<script src="assets/js/lib/jquery-3.7.1.min.js"></script>
+<!-- Bootstrap Bundle -->
+<script src="assets/js/lib/bootstrap.bundle.min.js"></script>
+<!-- Apex Charts -->
+<script src="assets/js/lib/apexcharts.min.js"></script>
+<!-- Data Tables -->
+<script src="assets/js/lib/simple-datatables.min.js"></script>
+<!-- Flatpickr -->
+<!-- <script src="assets/js/lib/flatpickr.js"></script> -->
+<!-- Full Calendar -->
+<!-- <script src="assets/js/lib/full-calendar.js"></script> -->
+<!-- Vector Map -->
+<script src="assets/js/lib/jquery-jvectormap-2.0.5.min.js"></script>
+<script src="assets/js/lib/jquery-jvectormap-world-mill-en.js"></script>
+<!-- Magnific Popup -->
+<script src="assets/js/lib/magnifc-popup.min.js"></script>
+<!-- Slick Slider -->
+<script src="assets/js/lib/slick.min.js"></script>
+<!-- Prism -->
+<script src="assets/js/lib/prism.js"></script>
+<!-- File Upload -->
+<script src="assets/js/lib/file-upload.js"></script>
+<!-- Main JS -->
+<!-- <script src="assets/js/main.js"></script> -->
+ <script src="assets/js/flowbite.min.js"></script>
+<!-- App JS -->
+<script src="assets/js/app.js"></script>
+
+<?php if (basename($_SERVER['PHP_SELF']) === 'dashboard.php'): ?>
+<script src="assets/js/homeOneChart.js"></script>
+<?php endif; ?>
+
+<?php if (!empty($script)): ?>
+
+<?= trim((string)$script) ?>
+
+<?php endif; ?>
+
+

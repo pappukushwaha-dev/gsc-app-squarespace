@@ -71,7 +71,7 @@ $stmt = $pdo->query("
 /* ----------------------------------------------------
    GOHIGHLEVEL SETTINGS
 ---------------------------------------------------- */
-$stmtGhl = $pdo->query("SELECT * FROM squarespace_settings LIMIT 1");
+$stmtGhl = $pdo->query("SELECT * FROM ecwid_settings LIMIT 1");
 $ghlSettings = $stmtGhl->fetch(PDO::FETCH_ASSOC) ?: [];
 
 if (!empty($ghlSettings['client_secret'])) {

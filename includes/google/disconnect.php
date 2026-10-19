@@ -1,27 +1,92 @@
 <?php
-// includes/google/disconnect.php — Disconnect Google account
+// /bigcommerce/googlesearchconsole/includes/google/disconnect.php
 declare(strict_types=1);
+
+session_start();
+
+require_once __DIR__ . '/../config.php';
 
 header('Content-Type: application/json');
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-require_once __DIR__ . '/../../includes/config.php';
-require_once __DIR__ . '/../../includes/credentials.php';
-
-$shopId = $_SESSION['shop_id'] ?? null;
+// ✅ SINGLE SOURCE OF TRUTH
+$shopId = $_SESSION['shop_id']
+    ?? $_SESSION['shop_id']
+    ?? null;;
 
 if (!$shopId) {
-    echo json_encode(['success' => false, 'error' => 'missing_instance']);
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'error'   => 'Missing instance ID'
+    ]);
     exit;
 }
 
-global $pdo;
-$pdo->prepare("UPDATE google_accounts SET connected = 0, access_token = NULL, refresh_token = NULL WHERE shop_id = ?")
-    ->execute([$shopId]);
+try {
+    /** @var PDO $pdo */
+    global $pdo;
 
-$_SESSION['google_connected'] = false;
+    $pdo->beginTransaction();
 
-echo json_encode(['success' => true, 'message' => 'Google account disconnected']);
+    /* --------------------------------------------------
+       1. Delete Google OAuth account
+    -------------------------------------------------- */
+    $stmt = $pdo->prepare("
+        DELETE FROM google_accounts 
+        WHERE shop_id = ?
+    ");
+    $stmt->execute([$shopId]);
+
+    /* --------------------------------------------------
+       2. Remove domain verification
+    -------------------------------------------------- */
+    $stmt = $pdo->prepare("
+        DELETE FROM gsc_domain_verifications 
+        WHERE shop_id = ?
+    ");
+    $stmt->execute([$shopId]);
+
+    /* --------------------------------------------------
+       3. Remove sitemaps
+    -------------------------------------------------- */
+    $stmt = $pdo->prepare("
+        DELETE FROM sitemaps 
+        WHERE shop_id = ?
+    ");
+    $stmt->execute([$shopId]);
+
+    /* --------------------------------------------------
+       4. Remove sitemap submission logs
+    -------------------------------------------------- */
+    $stmt = $pdo->prepare("
+        DELETE FROM sitemap_submission_logs 
+        WHERE shop_id = ?
+    ");
+    $stmt->execute([$shopId]);
+
+    /* --------------------------------------------------
+       5. Reset setup wizard progress
+    -------------------------------------------------- */
+    $stmt = $pdo->prepare("
+        UPDATE setup_wizard_status
+        SET step1 = 0, step2 = 0, step3 = 0
+        WHERE shop_id = ?
+    ");
+    $stmt->execute([$shopId]);
+
+    $pdo->commit();
+
+    echo json_encode(['success' => true]);
+
+} catch (Throwable $e) {
+    if (isset($pdo) && $pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error'   => 'Disconnect failed'
+        // 'debug' => $e->getMessage() // enable only for dev
+    ]);
+}

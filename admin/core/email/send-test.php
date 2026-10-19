@@ -1,27 +1,44 @@
 <?php
-// admin/core/email/send-test.php — Send test email
-declare(strict_types=1);
-
-header('Content-Type: application/json');
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
 require_once __DIR__ . '/../../../includes/config.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['success' => false, 'error' => 'method_not_allowed']);
+require_once __DIR__ . '/../../../includes/EmailHelper.php';
+
+header('Content-Type: application/json');
+
+
+
+// Get JSON input
+$raw = file_get_contents('php://input');
+$data = json_decode($raw, true);
+
+if (!is_array($data)) {
+    echo json_encode(['success' => false, 'message' => 'Invalid request']);
     exit;
 }
 
-$data = json_decode(file_get_contents('php://input'), true) ?: [];
-$to = $data['to'] ?? '';
+$toEmail      = isset($data['to_email']) ? trim($data['to_email']) : '';
+$subject      = isset($data['subject']) ? $data['subject'] : '';
+$body         = isset($data['body']) ? $data['body'] : '';
+$placeholders = isset($data['placeholders']) && is_array($data['placeholders']) ? $data['placeholders'] : [];
 
-if (!$to) {
-    echo json_encode(['success' => false, 'error' => 'missing_email']);
+// Validate email
+if (!filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
+    echo json_encode(['success' => false, 'message' => 'Invalid test email address']);
     exit;
 }
 
 try {
-    $sent = mail($to, 'Test Email', 'This is a test email from GSC Squarespace App.');
-    echo json_encode(['success' => $sent, 'message' => $sent ? 'Test email sent' : 'Failed to send']);
+    // We’ll send a “raw test email” using the current subject & body,
+    // not the DB template (so unsaved edits are included).
+    sendRawTestEmail($pdo, $toEmail, $subject, $body, $placeholders);
+
+    echo json_encode(['success' => true]);
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    echo json_encode([
+        'success' => false,
+        'message' => $e->getMessage()
+    ]);
 }
