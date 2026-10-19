@@ -100,8 +100,11 @@ unset($gscRawSecret, $gscKey);
 
 define('APP_BASE',     '/squarespace/googlesearchconsole');
 define('APP_URL',      rtrim((string) ($_ENV['APP_URL'] ?? 'https://makkpressapps.com/squarespace/googlesearchconsole'), '/'));
+define('BASE_URL',     rtrim((string) ($_ENV['BASE_URL'] ?? $_ENV['APP_URL'] ?? 'https://makkpressapps.com/squarespace/googlesearchconsole'), '/'));
 define('APP_NAME',     'Google Search Console — Squarespace');
 define('APP_PLATFORM', 'squarespace');
+
+date_default_timezone_set((string) ($_ENV['APP_TIMEZONE'] ?? getenv('APP_TIMEZONE') ?: 'UTC'));
 
 define('GOOGLE_CLIENT_ID',     $_ENV['GOOGLE_CLIENT_ID'] ?? getenv('GOOGLE_CLIENT_ID') ?? '');
 define('GOOGLE_CLIENT_SECRET', $_ENV['GOOGLE_CLIENT_SECRET'] ?? getenv('GOOGLE_CLIENT_SECRET') ?? '');
