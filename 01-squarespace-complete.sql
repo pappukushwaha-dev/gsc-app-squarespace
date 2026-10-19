@@ -1599,3 +1599,19 @@ WHERE NOT EXISTS (SELECT 1 FROM pricing_plans WHERE code = 'grow' AND billingPer
 INSERT INTO pricing_plans (name, code, price, isRecurring, billingPeriod, planProductId, showInMarket, price_id)
 SELECT 'Organic Booster', 'grow', 168.00, 1, 'yearly', '', 1, NULL FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM pricing_plans WHERE code = 'grow' AND billingPeriod = 'yearly');
+
+-- ============================================================
+-- app_free_trials — trial state per shop (plan_guard reads this)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS app_free_trials (
+    id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    shop_id    VARCHAR(191) NOT NULL,
+    status     VARCHAR(30) NOT NULL DEFAULT 'active',
+    started_at DATETIME NULL,
+    expires_on DATETIME NULL,
+    raw_event  JSON DEFAULT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT NULL,
+    PRIMARY KEY (id),
+    KEY idx_shop_status (shop_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
