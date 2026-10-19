@@ -19,7 +19,14 @@ if (!isset($_SESSION['user_id']) && !isset($_SESSION['admin_logged_in'])) {
     exit;
 }
 
-$instanceId = $_SESSION['instanceid'] ?? null;
+// URL params first: a deep link or the magic-login redirect names the
+// instance explicitly, and the session (one cookie shared across the
+// family panels on this domain) must never override it.
+$instanceId = $_GET['instanceid']
+    ?? $_GET['instance_id']
+    ?? $_SESSION['instanceid']
+    ?? $_SESSION['instance_id']
+    ?? null;
 
 // Fetch site info
 $siteInfo = [];
