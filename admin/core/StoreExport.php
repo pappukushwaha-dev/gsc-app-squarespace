@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/StoreExport.php — Store export manager for Squarespace
 declare(strict_types=1);
 

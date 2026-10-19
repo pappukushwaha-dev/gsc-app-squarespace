@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/app-edit.php — Edit existing app/store
 declare(strict_types=1);
 

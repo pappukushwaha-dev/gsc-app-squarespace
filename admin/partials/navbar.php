@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/partials/navbar.php — Admin navbar
 ?>
 <nav class="border-b border-neutral-700 bg-neutral-800 sticky top-0 z-10">

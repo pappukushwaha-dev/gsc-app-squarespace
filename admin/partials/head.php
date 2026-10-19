@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/partials/head.php — Admin head section
 $title = $title ?? 'Admin — Squarespace';
 ?>

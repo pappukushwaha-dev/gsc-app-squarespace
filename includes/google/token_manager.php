@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // includes/google/token_manager.php — Ensure valid Google access token
 // Same pattern as Wix/Shopify includes/google/token_manager.php
 

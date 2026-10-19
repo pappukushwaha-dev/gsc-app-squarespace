@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // pricing-block.php — Pricing Block Component
 declare(strict_types=1);
 $title = "Pricing";

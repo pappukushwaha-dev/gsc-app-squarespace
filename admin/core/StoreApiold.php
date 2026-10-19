@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/StoreApiold.php — Legacy store API for Squarespace
 declare(strict_types=1);
 

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // connect_google.php — Start Google OAuth for Squarespace
 // Same pattern as BigCommerce/Wix connect_google.php
 

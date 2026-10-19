@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // step-one.php — Squarespace site URL entry + Squarespace verification
 // User must enter valid Squarespace site URL before Google connect is enabled
 // site_id from Squarespace verification becomes the instance_id equivalent

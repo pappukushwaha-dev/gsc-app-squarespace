@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // api/google/verify_domain.php — Verify Squarespace domain in GSC
 // Same pattern as Wix/Shopify api/google/verify_domain.php
 

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // instructions.php — Setup instructions page
 declare(strict_types=1);
 

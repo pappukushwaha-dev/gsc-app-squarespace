@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // includes/db.php — Database connection
 declare(strict_types=1);
 

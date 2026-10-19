@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // includes/helpers.php — Common helper functions
 declare(strict_types=1);
 

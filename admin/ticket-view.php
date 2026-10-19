@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/ticket-view.php — View Ticket
 
 declare(strict_types=1);

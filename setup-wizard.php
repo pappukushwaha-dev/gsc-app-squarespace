@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // setup-wizard.php — Squarespace GSC Setup Wizard entry point
 // Same pattern as Wix/Shopify setup-wizard.php
 
@@ -144,7 +144,7 @@ include __DIR__ . '/partials/instruction-popup.php';
             <?php if ($key < count($steps)): ?>
                 <div class="flex-1 h-1
                     <?php echo $currentStep > (int)$key ? 'bg-cstm-primary' : 'bg-neutral-200 dark:bg-neutral-700'; ?>
-                <?php endif; ?>"></div>
+                "></div>
             <?php endif; ?>
         <?php endforeach; ?>
     </div>

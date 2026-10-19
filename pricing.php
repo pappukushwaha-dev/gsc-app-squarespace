@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // pricing.php — Pricing page
 declare(strict_types=1);
 

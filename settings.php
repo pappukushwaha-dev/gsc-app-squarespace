@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // settings.php — Settings page (redirects to admin/settings.php)
 declare(strict_types=1);
 

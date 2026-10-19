@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/mail-logs.php — Mail Logs
 
 declare(strict_types=1);

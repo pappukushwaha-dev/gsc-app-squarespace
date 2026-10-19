@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // current-plan.php — Current Subscription Plan
 declare(strict_types=1);
 $title = "Current Plan";

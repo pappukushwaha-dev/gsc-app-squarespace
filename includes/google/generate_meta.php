@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // includes/google/generate_meta.php — Generate Google verification meta tag
 declare(strict_types=1);
 

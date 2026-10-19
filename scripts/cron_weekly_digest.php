@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // scripts/cron_weekly_digest.php — Weekly digest email cron
 // Same pattern as Wix/Shopify cron_weekly_digest.php
 

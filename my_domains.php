@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // my_domains.php — My domains page
 declare(strict_types=1);
 

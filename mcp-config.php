@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // mcp-config.php — MCP server configuration
 declare(strict_types=1);
 

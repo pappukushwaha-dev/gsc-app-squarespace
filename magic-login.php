@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // magic-login.php — Magic Login
 declare(strict_types=1);
 $title = "Magic Login";

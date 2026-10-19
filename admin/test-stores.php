@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/test-stores.php — Test stores page
 declare(strict_types=1);
 

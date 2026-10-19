@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/email-template-add.php — Add Email Template
 
 declare(strict_types=1);

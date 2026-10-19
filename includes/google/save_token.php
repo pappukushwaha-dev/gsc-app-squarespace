@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // includes/google/save_token.php — Save Google OAuth token
 declare(strict_types=1);
 

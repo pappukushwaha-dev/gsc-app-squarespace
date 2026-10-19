@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // webhook/payment.php — Stripe payment webhook for Squarespace
 // Same pattern as Wix/Shopify webhook/payment.php
 

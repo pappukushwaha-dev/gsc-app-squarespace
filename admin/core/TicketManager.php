@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/TicketManager.php — Ticket manager for Squarespace
 declare(strict_types=1);
 

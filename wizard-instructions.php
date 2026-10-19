@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // wizard-instructions.php — Setup Wizard Instructions
 declare(strict_types=1);
 $title = "Setup Instructions";

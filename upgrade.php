@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // upgrade.php — Upgrade Plan
 declare(strict_types=1);
 $title = "Upgrade Plan";

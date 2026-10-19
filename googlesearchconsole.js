@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // googlesearchconsole.js — Frontend JS for GSC features
 document.addEventListener('DOMContentLoaded', function() {
     // Copy verification token

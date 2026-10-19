@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/stores.php — Stores management page
 declare(strict_types=1);
 

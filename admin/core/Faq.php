@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/Faq.php — FAQ manager
 declare(strict_types=1);
 

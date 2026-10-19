@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // pricingOld.php — Old Pricing (Legacy)
 declare(strict_types=1);
 $title = "Pricing (Legacy)";

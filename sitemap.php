@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // sitemap.php — Sitemap submit page
 declare(strict_types=1);
 

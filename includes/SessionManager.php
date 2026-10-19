@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // includes/SessionManager.php — Database-backed session management
 // Same pattern as Wix/Shopify includes/SessionManager.php
 

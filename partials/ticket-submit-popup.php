@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // partials/ticket-submit-popup.php — Support ticket popup trigger
 // Same pattern as Wix/Shopify partials/ticket-submit-popup.php
 

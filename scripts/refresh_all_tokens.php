@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // scripts/refresh_all_tokens.php — Refresh Google access tokens for all Squarespace sites
 // Same pattern as Wix/Shopify scripts/refresh_all_tokens.php
 

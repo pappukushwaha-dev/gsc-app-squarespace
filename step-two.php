@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // step-two.php — Squarespace domain verification
 // Same pattern as Wix step-two.php
 

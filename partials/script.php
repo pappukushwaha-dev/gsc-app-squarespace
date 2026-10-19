@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // partials/script.php — Common scripts
 ?>
 <script>

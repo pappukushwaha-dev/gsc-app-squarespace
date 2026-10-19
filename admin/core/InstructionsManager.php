@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/InstructionsManager.php — Instructions manager
 declare(strict_types=1);
 

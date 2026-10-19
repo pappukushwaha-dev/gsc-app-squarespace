@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/active-stores.php — Active stores list
 declare(strict_types=1);
 

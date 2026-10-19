@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/store-view.php — View single store details
 declare(strict_types=1);
 

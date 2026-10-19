@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/InactiveStores.php — Inactive stores manager for Squarespace
 declare(strict_types=1);
 

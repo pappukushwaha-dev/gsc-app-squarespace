@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // partials/layouts/layoutTopnew.php — Top layout for Squarespace app
 // Same pattern as Wix/Shopify partials/layouts/layoutTopnew.php
 

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/UpdateGeneralSettings.php — General settings updater for Squarespace
 declare(strict_types=1);
 

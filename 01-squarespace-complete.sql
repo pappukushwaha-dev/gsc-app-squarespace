@@ -1,4 +1,4 @@
-﻿-- ============================================================
+-- ============================================================
 -- 01-squarespace-complete.sql   (Squarespace)
 -- COMPLETE database schema for Squarespace GSC App
 -- Safe to run multiple times (IF NOT EXISTS guards)

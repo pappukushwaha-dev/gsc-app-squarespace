@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/faq.php — FAQ page
 declare(strict_types=1);
 

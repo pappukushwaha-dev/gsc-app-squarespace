@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/Update_stripe_Integration.php — Save Stripe credentials (encrypted)
 // Same pattern as Wix/Shopify/BigCommerce admin/core/Update_stripe_Integration.php
 

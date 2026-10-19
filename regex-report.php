@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // regex-report.php — Regex Report
 declare(strict_types=1);
 $title = "Regex Report";

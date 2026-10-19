@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/PaidStores.php — Paid stores manager for Squarespace
 declare(strict_types=1);
 
@@ -14,7 +14,7 @@ class PaidStores
                    a.plan_name, a.status as sub_status
             FROM SquarespaceSite s
             LEFT JOIN app_subscriptions a ON a.instance_id = s.instance_id
-            WHERE a.status = "active"
+            WHERE a.status = 'active'
             ORDER BY s.created_at DESC
         ");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -27,7 +27,7 @@ class PaidStores
             SELECT COUNT(DISTINCT s.instance_id)
             FROM SquarespaceSite s
             INNER JOIN app_subscriptions a ON a.instance_id = s.instance_id
-            WHERE a.status = "active"
+            WHERE a.status = 'active'
         ");
         return (int) $stmt->fetchColumn();
     }

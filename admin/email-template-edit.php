@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/email-template-edit.php — Edit Email Template
 
 declare(strict_types=1);

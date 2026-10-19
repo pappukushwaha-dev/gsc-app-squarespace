@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/partials/layouts/layoutTop.php — Admin layout top
 $title = $title ?? 'Admin — Squarespace';
 ?>

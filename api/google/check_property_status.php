@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // api/google/check_property_status.php — Check if GSC property is verified
 // Same pattern as Wix/Shopify api/google/check_property_status.php
 

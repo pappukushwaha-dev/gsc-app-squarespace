@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/partials/script.php — Admin scripts
 ?>
 <script>

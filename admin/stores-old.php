@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/stores-old.php — Legacy Stores List
 declare(strict_types=1);
 

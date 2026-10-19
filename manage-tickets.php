@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // manage-tickets.php — Support tickets page
 declare(strict_types=1);
 

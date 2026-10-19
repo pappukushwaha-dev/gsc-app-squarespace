@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/other-app-tracking.php — Other App Tracking
 
 declare(strict_types=1);

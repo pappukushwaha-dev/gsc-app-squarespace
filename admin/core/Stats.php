@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/Stats.php — Stats for Squarespace dashboard
 declare(strict_types=1);
 

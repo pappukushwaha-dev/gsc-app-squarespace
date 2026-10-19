@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // scripts/cron_payload_queue.php — Process email payload queue for Squarespace
 // Same pattern as Wix/Shopify/BigCommerce cron_payload_queue.php
 

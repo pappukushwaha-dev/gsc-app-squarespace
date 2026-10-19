@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // other-apps.php — Other apps page
 declare(strict_types=1);
 

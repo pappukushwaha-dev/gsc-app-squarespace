@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/partials/breadcrumb.php — Breadcrumb navigation
 ?>
 <nav class="flex items-center space-x-2 text-sm text-neutral-500 dark:text-neutral-400 mb-4">

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // partials/instruction-popup.php — Instruction popup for setup wizard
 ?>
 <!-- Instruction Popup -->

@@ -1,4 +1,4 @@
-﻿-- ============================================================
+-- ============================================================
 -- 01-squarespace-payload-queue.sql   (Squarespace)
 --
 -- Schema for the Encharge email log queue, for the Squarespace app.

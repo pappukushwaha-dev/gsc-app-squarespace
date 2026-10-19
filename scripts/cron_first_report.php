@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // scripts/cron_first_report.php — Send first report after verification
 // Same pattern as Wix/Shopify cron_first_report.php
 

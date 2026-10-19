@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/email/delete-category.php — Delete email category
 declare(strict_types=1);
 

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // scripts/cron_page1_check.php — Page 1 breakthrough check
 // Same pattern as Wix/Shopify cron_page1_check.php
 

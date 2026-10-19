@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/settings.php — Settings page (General + Google + Stripe)
 // Same pattern as Wix/Shopify admin/settings.php
 

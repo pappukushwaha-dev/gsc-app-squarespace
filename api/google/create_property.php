@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // api/google/create_property.php — Create GSC URL-prefix property for Squarespace
 // Same pattern as Wix/Shopify api/google/create_property.php
 

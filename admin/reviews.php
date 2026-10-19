@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/reviews.php — Reviews page
 declare(strict_types=1);
 

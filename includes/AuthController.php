@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // includes/AuthController.php — Authentication controller
 // Same pattern as Wix/Shopify includes/AuthController.php
 

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/stores-inactive.php — Inactive Stores
 
 declare(strict_types=1);

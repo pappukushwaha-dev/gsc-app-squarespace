@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // settings-old.php — Old Settings (Legacy)
 declare(strict_types=1);
 $title = "Settings (Legacy)";

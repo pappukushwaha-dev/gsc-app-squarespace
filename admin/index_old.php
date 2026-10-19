@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/index_old.php — Legacy Admin Dashboard
 declare(strict_types=1);
 

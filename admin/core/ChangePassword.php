@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/ChangePassword.php — Change password
 declare(strict_types=1);
 

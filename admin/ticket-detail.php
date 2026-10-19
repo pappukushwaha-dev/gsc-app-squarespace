@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/ticket-detail.php — Ticket Detail
 
 declare(strict_types=1);

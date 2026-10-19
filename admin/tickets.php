@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/tickets.php — Tickets management page
 declare(strict_types=1);
 

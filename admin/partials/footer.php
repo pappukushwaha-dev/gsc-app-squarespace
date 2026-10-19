@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/partials/footer.php — Admin footer
 ?>
 <footer class="border-t border-neutral-700 bg-neutral-800 py-6 mt-auto">

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // rich-results-report.php — Rich Results Report
 declare(strict_types=1);
 $title = "Rich Results Report";

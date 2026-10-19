@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/app-add.php — Add new app/store
 declare(strict_types=1);
 

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // customer-reviews.php — Customer Reviews
 declare(strict_types=1);
 $title = "Customer Reviews";

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/index.php — Squarespace Admin Dashboard
 // Same pattern as Wix/Shopify admin/index.php
 

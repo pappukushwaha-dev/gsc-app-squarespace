@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/AuthController.php — Auth controller for admin
 declare(strict_types=1);
 

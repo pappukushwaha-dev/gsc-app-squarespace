@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // dashboard.php — Squarespace GSC Dashboard
 // Same pattern as Wix/Shopify dashboard.php
 

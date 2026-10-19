@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/email/save-template.php — Save email template
 declare(strict_types=1);
 

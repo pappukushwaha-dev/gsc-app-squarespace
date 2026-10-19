@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/email/save-category.php — Save email category
 declare(strict_types=1);
 

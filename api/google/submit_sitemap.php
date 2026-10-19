@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // api/google/submit_sitemap.php — Submit sitemap to GSC for Squarespace
 
 declare(strict_types=1);

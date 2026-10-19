@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // partials/sidebar.php — Sidebar navigation
 ?>
 <aside class="hidden md:flex flex-col w-64 bg-neutral-50 dark:bg-neutral-800 border-r border-neutral-200 dark:border-neutral-700 h-screen fixed left-0 top-16">

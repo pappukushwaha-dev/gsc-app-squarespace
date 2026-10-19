@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/HeaderData.php — Header data for admin
 declare(strict_types=1);
 

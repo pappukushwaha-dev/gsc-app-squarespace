@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // logout.php — Logout handler
 declare(strict_types=1);
 

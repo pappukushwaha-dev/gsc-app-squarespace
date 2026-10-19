@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // webhook/app-uninstall.php — Squarespace app uninstall webhook
 // Same pattern as Wix webhook/app-uninstall.php
 

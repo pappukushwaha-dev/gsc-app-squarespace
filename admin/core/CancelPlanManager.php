@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/CancelPlanManager.php — Cancel plan manager
 declare(strict_types=1);
 

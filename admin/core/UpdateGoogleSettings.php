@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/UpdateGoogleSettings.php — Save Google OAuth credentials
 // Same pattern as Wix/Shopify/BigCommerce admin/core/UpdateGoogleSettings.php
 

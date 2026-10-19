@@ -1,4 +1,4 @@
-﻿-- ============================================================
+-- ============================================================
 -- 01-squarespace-other-app-clicks.sql   (Squarespace)
 --
 -- Tracks every click a user makes from this app's Other Apps page

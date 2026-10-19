@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // thank-you.php — Thank You Page
 declare(strict_types=1);
 $title = "Thank You";

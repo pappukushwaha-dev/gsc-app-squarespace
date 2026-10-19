@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/UpdateWixIntegration.php — Wix integration updater for Squarespace
 declare(strict_types=1);
 

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // includes/google/maybe_start_backfill.php — Start GSC data backfill after verification
 // Same pattern as Wix/Shopify includes/google/maybe_start_backfill.php
 

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/StoreManager.php — Store manager for Squarespace
 declare(strict_types=1);
 

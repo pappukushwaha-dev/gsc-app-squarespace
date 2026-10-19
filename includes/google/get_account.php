@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // includes/google/get_account.php — Get Google account for Squarespace instance
 // Same pattern as Wix/Shopify includes/google/get_account.php
 

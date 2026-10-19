@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // webhook/app-installed.php — Squarespace app install webhook
 // Same pattern as Wix webhook/app-installed.php
 

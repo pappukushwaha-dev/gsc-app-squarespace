@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/SessionManager.php — Session manager for admin
 declare(strict_types=1);
 

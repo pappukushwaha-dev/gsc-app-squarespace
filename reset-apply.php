@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // reset-apply.php — Reset / Apply Changes
 declare(strict_types=1);
 $title = "Reset Apply";

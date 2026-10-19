@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // partials/footer.php — Common footer
 ?>
 <footer class="border-t border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 py-6 mt-auto">

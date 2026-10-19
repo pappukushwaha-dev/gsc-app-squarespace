@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // partials/reports/rich_results_summary.php — Rich Results Summary card
 ?>
 <div class="px-6 py-4">

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/UpdateEmailSettings.php — Email settings updater for Squarespace
 declare(strict_types=1);
 

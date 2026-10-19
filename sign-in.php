@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // sign-in.php — Sign in page
 declare(strict_types=1);
 

@@ -1,4 +1,4 @@
-﻿# Squarespace GSC App — Phase-Wise Documentation
+# Squarespace GSC App — Phase-Wise Documentation
 
 ## Overview
 

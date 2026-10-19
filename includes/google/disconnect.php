@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // includes/google/disconnect.php — Disconnect Google account
 declare(strict_types=1);
 

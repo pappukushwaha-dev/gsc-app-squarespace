@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // test.php — Test Page
 declare(strict_types=1);
 $title = "Test";

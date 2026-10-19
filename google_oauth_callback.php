@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // google_oauth_callback.php — Google OAuth callback for Squarespace
 // Same pattern as BigCommerce/Wix google_oauth_callback.php
 

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // step-three.php — Squarespace sitemap submission
 // Same pattern as Wix step-three.php
 

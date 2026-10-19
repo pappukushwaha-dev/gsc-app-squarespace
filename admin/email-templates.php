@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/email-templates.php — Email Templates List
 // Same pattern as Shopify/Wix admin email-templates.php
 

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // why-first-report.php — Why First Report
 declare(strict_types=1);
 $title = "Why First Report";

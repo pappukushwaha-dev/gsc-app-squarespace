@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/StoreApi.php — Store API for Squarespace
 declare(strict_types=1);
 

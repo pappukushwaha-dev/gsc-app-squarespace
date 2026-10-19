@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // partials/head.php — Common head section
 $title = $title ?? 'Google Search Console — Squarespace';
 ?>

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // includes/google/get_squarespace_site.php — Get Squarespace site by instance
 declare(strict_types=1);
 

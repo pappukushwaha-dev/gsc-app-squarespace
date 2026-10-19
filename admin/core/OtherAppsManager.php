@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/OtherAppsManager.php — Other apps manager
 declare(strict_types=1);
 

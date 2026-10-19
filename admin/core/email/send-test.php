@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/email/send-test.php — Send test email
 declare(strict_types=1);
 

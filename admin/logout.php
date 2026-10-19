@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/logout.php — Admin logout
 declare(strict_types=1);
 

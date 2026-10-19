@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // action-center.php — Action Center
 declare(strict_types=1);
 $title = "Action Center";

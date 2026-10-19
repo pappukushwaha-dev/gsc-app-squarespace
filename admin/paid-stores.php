@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/paid-stores.php — Paid Stores List
 
 declare(strict_types=1);
@@ -23,7 +23,7 @@ $stmt = $pdo->prepare("
            a.plan_name, a.status as sub_status
     FROM SquarespaceSite s
     LEFT JOIN app_subscriptions a ON a.instance_id = s.instance_id
-    WHERE a.status = "active"
+    WHERE a.status = 'active'
     ORDER BY s.created_at DESC
 ");
 $stmt->execute();

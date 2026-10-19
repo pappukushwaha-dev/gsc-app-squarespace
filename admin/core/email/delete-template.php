@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/email/delete-template.php — Delete email template
 declare(strict_types=1);
 

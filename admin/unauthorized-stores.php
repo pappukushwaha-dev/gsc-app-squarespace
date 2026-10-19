@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/unauthorized-stores.php — Unauthorized stores
 declare(strict_types=1);
 

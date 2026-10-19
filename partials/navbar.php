@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // partials/navbar.php — Navigation bar
 ?>
 <nav class="border-b border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800">

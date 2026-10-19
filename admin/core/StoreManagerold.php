@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/StoreManagerold.php — Legacy store manager for Squarespace
 declare(strict_types=1);
 

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // index.php — Squarespace GSC App landing
 declare(strict_types=1);
 

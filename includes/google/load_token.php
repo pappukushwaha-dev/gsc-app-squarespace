@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // includes/google/load_token.php — Load Google access token
 declare(strict_types=1);
 

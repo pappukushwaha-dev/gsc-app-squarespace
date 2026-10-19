@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/instructions.php — Instructions page
 declare(strict_types=1);
 

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // partials/layouts/layoutBottom.php — Admin layout bottom
 ?>
     </main>

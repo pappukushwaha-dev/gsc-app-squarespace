@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/cancel-plan.php — Cancel subscription plan
 declare(strict_types=1);
 

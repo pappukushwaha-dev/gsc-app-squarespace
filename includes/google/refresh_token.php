@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // includes/google/refresh_token.php — Refresh Google access token
 declare(strict_types=1);
 

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // includes/plan_guard.php — Plan/trial guard
 declare(strict_types=1);
 

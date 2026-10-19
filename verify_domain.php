@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // verify_domain.php — Standalone verify domain endpoint
 declare(strict_types=1);
 

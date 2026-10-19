@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // includes/mailer.php — Email mailer
 declare(strict_types=1);
 

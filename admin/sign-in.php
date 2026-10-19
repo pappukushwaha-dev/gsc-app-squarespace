@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/sign-in.php — Admin sign in
 declare(strict_types=1);
 

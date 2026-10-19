@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/EmailHelper.php — Email helper
 declare(strict_types=1);
 

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // admin/core/ReviewManager.php — Review manager
 declare(strict_types=1);
 

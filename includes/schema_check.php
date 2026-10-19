@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // includes/schema_check.php — Schema check utility
 declare(strict_types=1);
 
