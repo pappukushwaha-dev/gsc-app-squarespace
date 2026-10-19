@@ -1,30 +1,32 @@
 <?php
-// admin/sign-in.php — Admin sign in
+// admin/sign-in.php — Admin sign in (DB-backed, admin_users table)
 declare(strict_types=1);
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
 require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/core/SessionManager.php';
+require_once __DIR__ . '/core/AuthController.php';
 
-if (isset($_SESSION['admin_logged_in'])) {
+SessionManager::startDatabaseSession();
+
+if (AuthController::isAuthenticated()) {
     header('Location: index.php');
     exit;
 }
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email    = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
+    $email    = trim((string) ($_POST['email'] ?? ''));
+    $password = (string) ($_POST['password'] ?? '');
 
-    if ($email !== '' && $password !== '') {
-        $_SESSION['admin_logged_in'] = true;
-        $_SESSION['user_id'] = 1;
-        header('Location: index.php');
-        exit;
+    if ($email === '' || $password === '') {
+        $error = 'Email and password are required.';
     } else {
-        $error = 'Invalid credentials';
+        $result = AuthController::login($email, $password);
+        if ($result['success']) {
+            header('Location: index.php');
+            exit;
+        }
+        $error = $result['message'];
     }
 }
 ?>

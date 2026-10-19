@@ -73,13 +73,13 @@ DROP TABLE IF EXISTS `EcwidSite`;
 
 
 --
--- Table structure for table `EcwidSiteProfile`
+-- Table structure for table `SquarespaceSiteProfile`
 --
 
-DROP TABLE IF EXISTS `EcwidSiteProfile`;
+DROP TABLE IF EXISTS `SquarespaceSiteProfile`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `EcwidSiteProfile` (
+CREATE TABLE `SquarespaceSiteProfile` (
   `id` int NOT NULL AUTO_INCREMENT,
   `shop_id` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'FK reference to ShopifySite.shop_id',
   `company_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -103,11 +103,11 @@ CREATE TABLE `EcwidSiteProfile` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `EcwidSiteProfile`
+-- Dumping data for table `SquarespaceSiteProfile`
 --
 
-/*!40000 ALTER TABLE `EcwidSiteProfile` DISABLE KEYS */;
-/*!40000 ALTER TABLE `EcwidSiteProfile` ENABLE KEYS */;
+/*!40000 ALTER TABLE `SquarespaceSiteProfile` DISABLE KEYS */;
+/*!40000 ALTER TABLE `SquarespaceSiteProfile` ENABLE KEYS */;
 
 --
 -- Table structure for table `admin_settings`
@@ -1614,4 +1614,17 @@ CREATE TABLE IF NOT EXISTS app_free_trials (
     updated_at DATETIME DEFAULT NULL,
     PRIMARY KEY (id),
     KEY idx_shop_status (shop_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
+-- squarespace_settings — app-level OAuth config (admin panel form)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS squarespace_settings (
+    id            INT NOT NULL AUTO_INCREMENT,
+    client_id     VARCHAR(255) DEFAULT NULL,
+    client_secret VARCHAR(255) DEFAULT NULL,
+    redirect_uri  VARCHAR(500) DEFAULT NULL,
+    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at    DATETIME DEFAULT NULL,
+    PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
