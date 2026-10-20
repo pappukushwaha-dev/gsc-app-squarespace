@@ -35,7 +35,7 @@ if ($shopIdFromUrl && ($shopIdFromUrl !== $shopIdFromSession)) {
 
 if ($needsUpdate) {
     $stmt = $pdo->prepare("
-        SELECT shop_id, shop_domain, shop_name
+        SELECT shop_id, domain AS shop_domain, site_display_name AS shop_name
         FROM SquarespaceSite
         WHERE shop_id = ?
           AND is_active = 1

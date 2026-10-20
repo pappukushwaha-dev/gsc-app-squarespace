@@ -40,7 +40,7 @@ if (!$shopId) {
    2. FETCH SHOP DATA (SquarespaceSite)
 ===================================================== */
 $stmt = $pdo->prepare("
-    SELECT shop_name, shop_domain
+    SELECT site_display_name AS shop_name, domain AS shop_domain
     FROM SquarespaceSite
     WHERE shop_id = ?
     LIMIT 1

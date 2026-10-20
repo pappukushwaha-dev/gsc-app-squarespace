@@ -130,7 +130,7 @@ $weekEndIso   = date(DATE_ATOM, strtotime($curEnd . ' 12:00:00'));
  * Sites
  * ----------------------------------- */
 $sql = "
-    SELECT s.id AS user_id, s.shop_id, s.email, s.shop_name, s.domain, s.shop_domain, s.digest_last_sent_at
+    SELECT s.id AS user_id, s.shop_id, s.email, s.site_display_name AS shop_name, s.domain, s.domain AS shop_domain, s.digest_last_sent_at
     FROM {$SITE_TABLE} s
     WHERE s.email IS NOT NULL AND s.email <> ''
       AND s.is_active = 1

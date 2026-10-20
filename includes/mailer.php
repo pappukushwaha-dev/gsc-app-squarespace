@@ -83,7 +83,7 @@ function notify_new_ticket(PDO $pdo, int $ticketId): bool
 
         /* ---------- Store + customer ---------- */
         $sStmt = $pdo->prepare("
-            SELECT shop_name, shop_domain, domain, email
+            SELECT site_display_name AS shop_name, domain AS shop_domain, domain, owner_email AS email
             FROM SquarespaceSite
             WHERE shop_id = :i
             LIMIT 1

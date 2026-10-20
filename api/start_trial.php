@@ -83,7 +83,7 @@ $shopId = $_SESSION['shop_id'] ?? $_SESSION['shop_id'] ?? ($_GET['shop_id'] ?? n
     // A used trial now stays used.
     // --------------------------------------------------
 
-    $storeStmt = $pdo->prepare("SELECT shop_domain FROM SquarespaceSite WHERE shop_id = :i LIMIT 1");
+    $storeStmt = $pdo->prepare("SELECT domain AS shop_domain FROM SquarespaceSite WHERE shop_id = :i LIMIT 1");
     $storeStmt->execute([':i' => $shopId]);
     $shopDomain = (string)($storeStmt->fetchColumn() ?: '');
 
@@ -92,7 +92,7 @@ $shopId = $_SESSION['shop_id'] ?? $_SESSION['shop_id'] ?? ($_GET['shop_id'] ?? n
            app_free_trials carry different collations in this database
            (utf8mb4_0900_ai_ci vs utf8mb4_unicode_ci), and comparing their
            columns directly raises error 1267. */
-        $idsStmt = $pdo->prepare("SELECT shop_id FROM SquarespaceSite WHERE shop_domain = :shop");
+        $idsStmt = $pdo->prepare("SELECT shop_id FROM SquarespaceSite WHERE domain = :shop");
         $idsStmt->execute([':shop' => $shopDomain]);
         $siteInstanceIds = $idsStmt->fetchAll(PDO::FETCH_COLUMN);
 

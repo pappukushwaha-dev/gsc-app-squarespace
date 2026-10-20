@@ -4,7 +4,16 @@ declare(strict_types=1);
 
 // Read env (Dotenv populates $_ENV); fallback to getenv()
 $env = static function(string $key, ?string $default = null): ?string {
-    return $_ENV[$key] ?? getenv($key) ?: $default;
+    /* A value explicitly set in .env WINS even when it is an empty
+       string - otherwise an intentionally empty DB_PASS (passwordless
+       local MySQL) would silently fall through to the coded default
+       and produce an access-denied at connect time. getenv() is only
+       consulted when the key is absent from .env entirely. */
+    if (array_key_exists($key, $_ENV)) {
+        return (string) $_ENV[$key];
+    }
+    $v = getenv($key);
+    return ($v === false || $v === null || $v === '') ? $default : (string) $v;
 };
 
 $host   = $env('DB_HOST', '127.0.0.1');
