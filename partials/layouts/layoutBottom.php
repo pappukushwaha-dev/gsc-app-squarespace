@@ -11,7 +11,7 @@ if (!isset($siteUrl)) {
     if (isset($shopId) && $shopId) {
         try {
             $stmt = $pdo->prepare("
-                SELECT shop_domain
+                SELECT domain AS shop_domain
                 FROM SquarespaceSite
                 WHERE shop_id = ?
                 LIMIT 1

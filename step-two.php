@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/config.php';
-require_once __DIR__ . '/includes/google/get_bigcommerce_site.php';
+require_once __DIR__ . '/includes/google/get_squarespace_site.php';
 require_once __DIR__ . '/includes/google/get_account.php';
 // /* ==========================================================
 //    SESSION

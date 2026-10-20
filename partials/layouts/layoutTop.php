@@ -23,7 +23,7 @@ if (!$shop) {
         // Get shop domain from database
         require_once __DIR__ . '/../../includes/config.php';
         $stmt = $pdo->prepare("
-            SELECT shop_domain
+            SELECT domain AS shop_domain
             FROM SquarespaceSite
             WHERE shop_id = ?
               AND is_active = 1

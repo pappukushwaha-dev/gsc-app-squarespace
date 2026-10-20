@@ -38,7 +38,7 @@ if (!$shopId) {
 }
 
 
-require_once __DIR__ . '/includes/google/get_bigcommerce_site.php';
+require_once __DIR__ . '/includes/google/get_squarespace_site.php';
 
 $site = getSquarespaceSiteByInstance($shopId);
 

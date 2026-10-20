@@ -49,7 +49,7 @@ $shopDomain = null;
 
 try {
     $stmt = $pdo->prepare("
-        SELECT shop_domain
+        SELECT domain AS shop_domain
         FROM SquarespaceSite
         WHERE shop_id = ?
         AND is_active = 1

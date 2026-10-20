@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/google/get_account.php';
-require_once __DIR__ . '/includes/google/get_bigcommerce_site.php';
+require_once __DIR__ . '/includes/google/get_squarespace_site.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
