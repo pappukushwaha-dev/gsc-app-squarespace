@@ -1628,3 +1628,8 @@ CREATE TABLE IF NOT EXISTS squarespace_settings (
     updated_at    DATETIME DEFAULT NULL,
     PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
+-- Action Center tables (psi_results + schema caches) — ported
+-- from the WordPress app's 08 migration.
+-- ============================================================
