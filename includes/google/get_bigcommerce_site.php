@@ -24,8 +24,8 @@ function getSquarespaceSiteByInstance(string $shopId): ?array
             SELECT
                 shop_id,
                 domain,
-                shop_name,
-                email
+                site_display_name AS shop_name,
+                owner_email       AS email
             FROM SquarespaceSite
             WHERE shop_id = ?
               AND is_active = 1
