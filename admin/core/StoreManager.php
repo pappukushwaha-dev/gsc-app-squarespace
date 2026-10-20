@@ -73,8 +73,8 @@ class StoreManager
             SELECT
                 ws.shop_id,
                 ws.domain,
-                ws.shop_name,
-                ws.email AS owner_email,
+                ws.site_display_name AS shop_name,
+                ws.owner_email,
                 ws.event_type,
                 ws.is_active,
                 ws.created_at,
@@ -102,9 +102,9 @@ class StoreManager
         } elseif ($search !== '') {
             $q = self::$pdo->quote('%' . $search . '%');
             $conditions[] = "
-                (ws.shop_name LIKE $q
+                (ws.site_display_name LIKE $q
                 OR ws.domain LIKE $q
-                OR ws.email LIKE $q
+                OR ws.owner_email LIKE $q
                 OR ga.email LIKE $q)
             ";
         }
@@ -163,9 +163,9 @@ class StoreManager
         } elseif ($search !== '') {
             $q = self::$pdo->quote('%' . $search . '%');
             $conditions[] = "
-                (ws.shop_name LIKE $q
+                (ws.site_display_name LIKE $q
                 OR ws.domain LIKE $q
-                OR ws.email LIKE $q
+                OR ws.owner_email LIKE $q
                 OR ga.email LIKE $q)
             ";
         }
