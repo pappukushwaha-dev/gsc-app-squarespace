@@ -1099,7 +1099,9 @@ include './partials/layouts/layoutTop.php';
         var timer = setTimeout(function () {
             if (done) { return; }
             done = true; SPEED_STATE = 'failed'; healthRepaint();
-        }, 45000);   // PSI is slow on a cold cache
+        }, 120000);  // outlive the 90s server-side PSI cap (cold-cache runs
+                         // regularly cross 45s), so a slow first run reports
+                         // its real result instead of being abandoned
 
         fetch(ACP_BASE + '/api/run_speed_test.php?strategy=mobile', { credentials: 'same-origin' })
             .then(function (res) { return res.json(); })
