@@ -1195,7 +1195,7 @@ include './partials/layouts/layoutTop.php';
        on screen. A BOM is prepended so Excel opens Hindi and other
        non-ASCII queries correctly.
     ------------------------------------------------------------ */
-    document.getElementById('downloadCsvBtn').addEventListener('click', () => {
+    document.getElementById('downloadCsvBtn')?.addEventListener('click', () => {
         if (!allRows.length) {
             alert('No data to download yet.');
             return;

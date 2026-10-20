@@ -830,7 +830,7 @@ $faviconPath = $adminData['favicon_path'] ?? 'assets/images/logo-icon.png';
         call. It is set from PHP now rather than from a fetch.
 ========================================================== */
 
-const shopId = <?= json_encode($shopIdForApi) ?>;
+window.shopId = <?= json_encode($shopIdForApi) ?>;
 
 // Shape kept as the old code published it, so anything reading
 // window.currentPlan elsewhere keeps working unchanged.
