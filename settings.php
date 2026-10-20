@@ -45,10 +45,10 @@ if (!$shopId) {
 */
 $stmt = $pdo->prepare("
     SELECT
-        shop_name,
-        email,
+        site_display_name AS shop_name,
+        owner_email       AS email,
         domain,
-        shop_domain
+        domain            AS shop_domain
     FROM SquarespaceSite
     WHERE shop_id = ?
     LIMIT 1

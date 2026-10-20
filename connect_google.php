@@ -1,37 +1,37 @@
 <?php
-// /connect_google.php
-ini_set('display_errors',1); error_reporting(E_ALL);
-session_start();
+// connect_google.php — start the Google OAuth flow for this shop.
+// Credentials: google_settings table (admin panel) with .env fallback
+// (both resolved inside includes/credentials.php).
 
-require_once __DIR__.'/classes/GoogleSearchConsole.php';
+declare(strict_types=1);
 
-$gsc = new GoogleSearchConsole();
-$authUrl = $gsc->getAuthUrl();
+require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/credentials.php';
 
-$returnTo = isset($_GET['return']) ? $_GET['return'] : '/dashboard.php';
+// config.php already started the session; no separate session manager
+// is needed on the public side.
 
-?>
-<!doctype html>
-<meta charset="utf-8">
-<title>Connect Google</title>
-<script>
-  (function () {
-    var url = <?= json_encode($authUrl) ?>;
+$shopId = (string) ($_SESSION['shop_id'] ?? $_GET['shop_id'] ?? '');
+if ($shopId === '') {
+    header('Location: sign-in.php');
+    exit;
+}
 
-    var w = window.open(url, "_blank", "width=520,height=680,noopener");
-    if (!w) {
-      window.top.location.href = url;
-    } else {
-      var i = setInterval(function () {
-        if (w.closed) {
-          clearInterval(i);
-          try { window.top.postMessage({type:"googleConnected"}, "*"); } catch(e){}
-          window.location.replace(<?= json_encode($returnTo) ?>);
-        }
-      }, 700);
-    }
-  })();
-</script>
-<p>If you are not redirected automatically,
-   <a href="<?= htmlspecialchars($authUrl) ?>" target="_blank" rel="noopener">click here</a>.
-</p>
+if ($googleClientId === '' || $googleClientSecret === '' || $googleRedirectUri === '') {
+    http_response_code(500);
+    echo 'Google sign-in is not configured yet. Set it in the admin panel (Settings -> Google) first.';
+    exit;
+}
+
+$params = [
+    'client_id'     => $googleClientId,
+    'redirect_uri'  => $googleRedirectUri,
+    'response_type' => 'code',
+    'scope'         => GSC_SCOPES,
+    'access_type'   => 'offline',
+    'prompt'        => 'consent',
+    'state'         => $shopId, // returned untouched by Google; callback maps tokens to this shop
+];
+
+header('Location: https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query($params));
+exit;
