@@ -165,3 +165,29 @@ function notify_new_ticket(PDO $pdo, int $ticketId): bool
         return false;
     }
 }
+
+/* ==========================================================
+   Mailer facade — used by the registration magic-link flow
+   (account_provision.php calls Mailer::send).
+   Sends via Postmark SMTP through build_mailer() above.
+========================================================== */
+if (!class_exists('Mailer')) {
+    class Mailer
+    {
+        public static function send(string $to, string $subject, string $html): bool
+        {
+            try {
+                $mail = build_mailer();
+                $mail->addAddress($to);
+                $mail->isHTML(true);
+                $mail->Subject = $subject;
+                $mail->Body    = $html;
+                $mail->AltBody = strip_tags($html);
+                return (bool) $mail->send();
+            } catch (Throwable $e) {
+                error_log('Mailer::send to ' . $to . ' failed: ' . $e->getMessage());
+                return false;
+            }
+        }
+    }
+}

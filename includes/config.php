@@ -1,76 +1,102 @@
 <?php
-// includes/config.php
+// includes/config.php — Squarespace GSC App
+// .env loading (phpdotenv) + DB (db.php) + global constants.
+
 declare(strict_types=1);
 
 /* ==========================================================
-   AUTOLOADER (.env)
+   VENDOR AUTOLOAD (phpdotenv, google client, stripe, phpmailer)
 ========================================================== */
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use Dotenv\Dotenv;
 
-$dotenv = Dotenv::createImmutable(__DIR__ . '/../');
-$dotenv->safeLoad(); // no fatal error if .env missing
-
+/* ==========================================================
+   .ENV (safe load — missing file is not fatal)
+========================================================== */
+Dotenv::createImmutable(__DIR__ . '/../')->safeLoad();
 
 /* ==========================================================
-   DATABASE CONNECTION (PDO)
+   DEBUG (APP_DEBUG=1 shows errors — keep 0 in production)
 ========================================================== */
-require_once __DIR__ . '/db.php'; // ensures $pdo is available
+$APP_DEBUG = ($_ENV['APP_DEBUG'] ?? '0') === '1';
+ini_set('display_errors', $APP_DEBUG ? '1' : '0');
+ini_set('display_startup_errors', $APP_DEBUG ? '1' : '0');
+error_reporting($APP_DEBUG ? E_ALL : E_ALL & ~E_DEPRECATED & ~E_NOTICE);
 
+date_default_timezone_set($_ENV['APP_TIMEZONE'] ?? 'UTC');
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 /* ==========================================================
-   APPLICATION ENVIRONMENT
+   DATABASE (includes/db.php connects + exposes $pdo)
 ========================================================== */
-$APP_ENV      = $_ENV['APP_ENV']      ?? 'production';
-$APP_DEBUG    = ($_ENV['APP_DEBUG'] ?? '0') === '1';
-$APP_TIMEZONE = $_ENV['APP_TIMEZONE'] ?? 'UTC';
-
-date_default_timezone_set($APP_TIMEZONE);
-
+require_once __DIR__ . '/db.php';
 
 /* ==========================================================
    APPLICATION CONSTANTS
 ========================================================== */
 /*
- | IMPORTANT RULE:
- | - APP_BASE → NEVER end with slash
- | - APP_URL  → ALWAYS end with slash
+ | APP_BASE  → subfolder path, never ends with a slash
+ | APP_URL   → full URL, always ends with a slash
+ | Locally (php -S from the app folder) the app IS the web root,
+ | so APP_BASE is empty and the URL comes from .env.
  */
+$httpHost = $_SERVER['HTTP_HOST'] ?? '';
+$isLocal  = str_contains($httpHost, 'localhost') || str_contains($httpHost, '127.0.0.1');
 
-// Local (Docker) vs Live detection
-$http_host = $_SERVER['HTTP_HOST'] ?? '';
-$is_local  = str_contains($http_host, 'localhost') || str_contains($http_host, '127.0.0.1');
+define('APP_BASE', $isLocal ? '' : '/squarespace/googlesearchconsole');
 
-if ($is_local) {
-    // Local Docker — no subfolder, URL from .env (http://localhost:8082/)
-    define("APP_BASE", "");
-    define("APP_URL", rtrim(
-        $_ENV['APP_URL'] ?? "http://" . $http_host . "/",
-        '/'
-    ) . '/');
-} else {
-    // Live server
-    define("APP_BASE", "/ecwid/googlesearchconsole");
-    define("APP_URL", rtrim(
-        $_ENV['APP_URL'] ?? "https://makkpressapps.com/ecwid/googlesearchconsole/",
-        '/'
-    ) . '/');
-}
+$appUrl = rtrim((string) ($_ENV['APP_URL'] ?? ($isLocal
+    ? 'http://127.0.0.1:8099'
+    : 'https://makkpressapps.com/squarespace/googlesearchconsole')), '/');
+define('APP_URL',  $appUrl . '/');
+define('BASE_URL', $appUrl . '/');
+define('HOST_URL', APP_URL);
 
-// 🔥 Proper HOST_URL for OAuth + redirects
-// Always ends with slash
-define("HOST_URL", APP_URL);
-
+define('APP_NAME',     'Google Search Console — Squarespace');
+define('APP_PLATFORM', 'squarespace');
 
 /* ==========================================================
-   DEBUG MODE
+   ENCRYPTION KEY (family derivation from ENCRYPTION_SECRET)
 ========================================================== */
-
-if ($APP_DEBUG) {
-    ini_set('display_errors', 1);
-    ini_set('display_startup_errors', 1);
-    error_reporting(E_ALL);
-} else {
-    ini_set('display_errors', 0);
+$rawKey = $_ENV['ENCRYPTION_SECRET'] ?? getenv('ENCRYPTION_SECRET') ?: '';
+if (!defined('ENCRYPTION_KEY')) {
+    $key = str_starts_with($rawKey, 'base64:')
+        ? base64_decode(substr($rawKey, 7))
+        : $rawKey;
+    if ($key === false || $key === '') {
+        $key = str_pad('squarespace-gsc', 32, "\0");
+    }
+    if (strlen($key) < 32) {
+        $key = str_pad($key, 32, "\0");
+    } elseif (strlen($key) > 32) {
+        $key = substr($key, 0, 32);
+    }
+    define('ENCRYPTION_KEY', $key);
 }
+
+/* ==========================================================
+   GOOGLE OAUTH (google_settings table wins; .env is fallback)
+   Saved from: admin panel → Settings → Google settings
+========================================================== */
+define('GOOGLE_CLIENT_ID',     $_ENV['GOOGLE_CLIENT_ID'] ?? getenv('GOOGLE_CLIENT_ID') ?? '');
+define('GOOGLE_CLIENT_SECRET', $_ENV['GOOGLE_CLIENT_SECRET'] ?? getenv('GOOGLE_CLIENT_SECRET') ?? '');
+define('GOOGLE_REDIRECT_URI',  $_ENV['GOOGLE_REDIRECT_URI'] ?? getenv('GOOGLE_REDIRECT_URI') ?? '');
+
+define('GSC_SCOPES', 'https://www.googleapis.com/auth/webmasters.readonly https://www.googleapis.com/auth/webmasters');
+
+/* ==========================================================
+   STRIPE (fallbacks — the real keys live in admin_settings,
+   saved from: admin panel → Settings → Stripe Integration)
+========================================================== */
+define('STRIPE_PUBLIC_KEY',     $_ENV['STRIPE_PUBLIC_KEY'] ?? getenv('STRIPE_PUBLIC_KEY') ?? '');
+define('STRIPE_SECRET_KEY',     $_ENV['STRIPE_SECRET_KEY'] ?? getenv('STRIPE_SECRET_KEY') ?? '');
+define('STRIPE_WEBHOOK_SECRET', $_ENV['STRIPE_WEBHOOK_SECRET'] ?? getenv('STRIPE_WEBHOOK_SECRET') ?? '');
+
+/* ==========================================================
+   MAIL FROM (magic links + notifications)
+========================================================== */
+define('MAIL_FROM', $_ENV['MAIL_FROM'] ?? 'noreply@makkpressapps.com');

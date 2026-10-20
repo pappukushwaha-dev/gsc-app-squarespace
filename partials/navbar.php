@@ -12,7 +12,9 @@ if (session_status() === PHP_SESSION_NONE) {
 */
 $shopId = $_SESSION['shop_id'] ?? $_GET['shop_id'] ?? null;
 
-if (!$shopId) {
+if (!$shopId && empty($publicPage)) {
+    /* Public pages (register/sign-in) include the layout with guests
+       allowed — the navbar renders in guest mode instead of bouncing. */
     header('Location: sign-in.php');
     exit;
 }

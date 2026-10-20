@@ -50,6 +50,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+$publicPage = true; // guests must reach this form without a session
+
 require_once __DIR__ . '/partials/layouts/layoutTopnew.php';
 ?>
 

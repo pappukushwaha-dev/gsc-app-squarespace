@@ -31,7 +31,10 @@ $shopId =
     ?? $_SESSION['shop_id']
     ?? null;
 
-if (!$shopId) {
+if (!$shopId && empty($publicPage)) {
+    /* Public pages (register, sign-in) set $publicPage = true before
+       including this layout — guests are allowed there. Everything else
+       requires a session. */
     header("Location: " . APP_BASE . "/sign-in.php");
     exit();
 }
@@ -46,7 +49,7 @@ $shopDomain = null;
 
 try {
     $stmt = $pdo->prepare("
-        SELECT domain AS shop_domain
+        SELECT shop_domain
         FROM SquarespaceSite
         WHERE shop_id = ?
         AND is_active = 1
@@ -69,7 +72,9 @@ $isSetupWizard = ($currentPage === 'setup-wizard.php');
    Allow setup wizard to render
    even if shop not validated yet
 */
-if (!$shopDomain && !$isSetupWizard) {
+if (!$shopDomain && !$isSetupWizard && empty($publicPage)) {
+    /* Guests on public pages (register/sign-in) are allowed — the shop
+       lookup simply yields no branding. Only session pages get bounced. */
     session_destroy();
     header("Location: " . APP_BASE . "/sign-in.php");
     exit();
@@ -95,7 +100,8 @@ if (!$isSetupWizard) {
         // prevent crash
     }
 
-    if (!$subscription || strtolower($subscription['status'] ?? '') !== 'active') {
+    if (empty($publicPage) && (!$subscription || strtolower($subscription['status'] ?? '') !== 'active')) {
+        /* Guests on public pages skip the subscription gate entirely. */
         header("Location: " . APP_BASE . "/setup-wizard.php");
         exit();
     }
