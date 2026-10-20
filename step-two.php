@@ -698,9 +698,9 @@ if (!empty($status) && $status == 'verified') {
             </label>
             <p class="text-xs text-neutral-500 mb-2">
                 <?php if ($isInstantSite): ?>
-                    Paste this tag into Squarespace &rarr; <b>Website &rarr; SEO &rarr; Header meta tags and site verification</b>.
+                    Paste this tag into Squarespace &rarr; <b>Website &rarr; Pages &rarr; Custom Code &rarr; Code Injection</b> (Header section).
                 <?php else: ?>
-                    Paste this tag inside the <?= $isInstantSite ?> <code>&lt;head&gt;</code> of your website. Exact steps vary by platform &mdash; see the guide below.
+                    Paste this tag inside the <code>&lt;head&gt;</code> of your website. Exact steps vary by platform &mdash; see the guide below.
                 <?php endif; ?>
             </p>
             <div class="relative">
@@ -721,7 +721,7 @@ if (!empty($status) && $status == 'verified') {
         <div class="rounded-xl p-4 text-sm font-medium border block border-neutral-200 bg-neutral-50 text-neutral-700 mt-4">
             <h2 class="text-lg font-semibold text-neutral-800 dark:text-neutral-100 mb-2">
                 <?php if ($isInstantSite): ?>
-                    How to add this in Squarespace Instant Site
+                    How to add this in Squarespace
                 <?php else: ?>
                     How to add the meta tag to your website
                 <?php endif; ?>
@@ -729,11 +729,11 @@ if (!empty($status) && $status == 'verified') {
 
             <?php if ($isInstantSite): ?>
                 <ul class="space-y-2">
-                    <li class="flex gap-2"><span class="font-bold">1.</span> Open your <b>Squarespace Control Panel</b>.</li>
-                    <li class="flex gap-2"><span class="font-bold">2.</span> In the left sidebar, open <b>Website &rarr; SEO</b>.</li>
-                    <li class="flex gap-2"><span class="font-bold">3.</span> Scroll to <b>SEO settings &rarr; Header meta tags and site verification</b>.</li>
-                    <li class="flex gap-2"><span class="font-bold">4.</span> Click <b>Edit</b>.</li>
-                    <li class="flex gap-2"><span class="font-bold">5.</span> Paste the full meta tag (above) into the textarea, then <b>Save</b>.</li>
+                    <li class="flex gap-2"><span class="font-bold">1.</span> Log in to your <b>Squarespace Control Panel</b>.</li>
+                    <li class="flex gap-2"><span class="font-bold">2.</span> In the left sidebar, open <b>Website &rarr; Pages</b>.</li>
+                    <li class="flex gap-2"><span class="font-bold">3.</span> Scroll down to <b>Custom Code &rarr; Code Injection</b>.</li>
+                    <li class="flex gap-2"><span class="font-bold">4.</span> In the <b>Header</b> section, paste the full meta tag (above).</li>
+                    <li class="flex gap-2"><span class="font-bold">5.</span> Click <b>Save</b>.</li>
                     <li class="flex gap-2"><span class="font-bold">6.</span> Return here and click <b>Verify Domain</b>.</li>
                 </ul>
             <?php else: ?>
