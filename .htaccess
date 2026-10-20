@@ -7,10 +7,10 @@ RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 # 🚨 IMPORTANT: allow webhooks to pass through untouched
 RewriteRule ^webhook(/.*)?$ - [L]
 
-RewriteBase /bigcommerce/googlesearchconsole/
+RewriteBase /squarespace/googlesearchconsole/
 
 RewriteRule ^index\.php$ - [L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . /bigcommerce/googlesearchconsole/index.php [L]
+RewriteRule . /squarespace/googlesearchconsole/index.php [L]
 </IfModule>
