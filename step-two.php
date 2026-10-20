@@ -108,9 +108,15 @@ $isConnected = (
 );
 
 // -----------------------------------------------------
-// 1. GET SITE URL FROM WixSite TABLE
+// 1. GET SITE URL FROM SquarespaceSite TABLE
 // -----------------------------------------------------
 $wixSite = getSquarespaceSiteByInstance($shopId);
+
+/* TEMP DIAGNOSTIC — remove once the wizard flow is verified */
+error_log('step-two diag: shopId=' . var_export($shopId, true)
+    . ' siteRow=' . var_export($wixSite ? 'found' : 'NULL', true)
+    . ' siteUrl=' . var_export($wixSite['site_url'] ?? null, true));
+
 $siteUrl = $wixSite['site_url'] ?? null;
 
 
@@ -120,9 +126,10 @@ if ($siteUrl) {
     $normalizedSiteUrl = rtrim(trim($siteUrl), '/') . '/';
 }
 
-/* 🔒 HARD GUARD — ADD IT RIGHT HERE */
+/* HARD GUARD — the shop must have a verified site before step 2 */
 if (!$normalizedSiteUrl) {
-    die("Invalid Wix site URL");
+    http_response_code(400);
+    die("Site not found for this shop. Complete registration (step 1) first.");
 }
 
 // $isInstantSite = !(bool)preg_match('/\.(company\.site|ecwid\.com|ecwid\.site)$/i', $normalizedSiteUrl);
