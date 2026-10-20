@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $verified = squarespaceVerifySite($domain);
         $res      = provisionInstance($pdo, $email, $domain, $verified);
 
-        $token = createMagicToken($pdo, $email, $res['instance_id']);
+        $token = createMagicToken($pdo, $email, $res['shop_id']);
         if (!sendMagicLink($email, $token)) {
             throw new AccountProvisionException('We could not send the sign-in email right now. Please try again in a minute.');
         }
@@ -81,6 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .rg-card {
+            position: relative;
             width: 100%;
             max-width: 940px;
             display: grid;
@@ -90,6 +91,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background: #fff;
             border: 1px solid var(--s1-line);
             box-shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 12px 36px rgba(15, 23, 42, .08);
+        }
+
+        /* family-signature gradient top strip */
+        .rg-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3b5bfd, #7c3aed 55%, #16a34a);
+            z-index: 2;
         }
 
         /* ---------------- left: live illustration ---------------- */
@@ -117,11 +130,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             position: absolute;
             border-radius: 50%;
             border: 1px solid rgba(59, 91, 253, .16);
+            animation: rgBreathe 6s ease-in-out infinite;
         }
 
-        .rg-ring.r1 { width: 150px; height: 150px; }
-        .rg-ring.r2 { width: 220px; height: 220px; opacity: .6; }
-        .rg-ring.r3 { width: 290px; height: 290px; opacity: .3; }
+        .rg-ring.r1 { width: 150px; height: 150px; animation-delay: 0s; }
+        .rg-ring.r2 { width: 220px; height: 220px; opacity: .6; animation-delay: 1.2s; }
+        .rg-ring.r3 { width: 290px; height: 290px; opacity: .3; animation-delay: 2.4s; }
+
+        @keyframes rgBreathe {
+            0%, 100% { transform: scale(1); opacity: .85; }
+            50%      { transform: scale(1.05); opacity: 1; }
+        }
 
         .rg-orbit {
             position: absolute;
@@ -142,7 +161,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             box-shadow: 0 0 0 4px rgba(59, 91, 253, .18);
         }
 
+        /* counter-rotating outer dot */
+        .rg-orbit.o2 {
+            width: 340px;
+            height: 340px;
+            animation: rgSpinRev 22s linear infinite;
+            opacity: .7;
+        }
+
+        .rg-orbit.o2 i {
+            width: 7px;
+            height: 7px;
+            background: #7c3aed;
+            box-shadow: 0 0 0 4px rgba(124, 58, 237, .15);
+        }
+
         @keyframes rgSpin { to { transform: rotate(360deg); } }
+        @keyframes rgSpinRev { to { transform: rotate(-360deg); } }
 
         .rg-mark {
             position: relative;
@@ -154,9 +189,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             align-items: center;
             justify-content: center;
             box-shadow: 0 4px 16px rgba(15, 23, 42, .1), 0 12px 36px rgba(59, 91, 253, .14);
+            animation: rgGlow 4s ease-in-out infinite;
         }
 
-        .rg-mark iconify-icon { font-size: 38px; color: #111827; }
+        /* soft breathing glow behind the mark */
+        .rg-mark::before {
+            content: "";
+            position: absolute;
+            inset: -14px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(59, 91, 253, .22), transparent 65%);
+            animation: rgGlow 4s ease-in-out infinite;
+        }
+
+        @keyframes rgGlow {
+            0%, 100% { opacity: .55; transform: scale(.96); }
+            50%      { opacity: 1;   transform: scale(1.06); }
+        }
+
+        .rg-mark iconify-icon { font-size: 38px; color: #111827; position: relative; }
 
         .rg-chip {
             position: absolute;
@@ -172,6 +223,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .rg-chip iconify-icon { font-size: 17px; }
+
+        .rg-chip { animation: rgBob 5s ease-in-out infinite; }
+        .rg-chip.c2 { animation-delay: .8s; }
+        .rg-chip.c3 { animation-delay: 1.6s; }
+        .rg-chip.c4 { animation-delay: 2.4s; }
+
+        @keyframes rgBob {
+            0%, 100% { transform: translateY(0); }
+            50%      { transform: translateY(-5px); }
+        }
 
         .rg-chip.c1 { top: 10%; left: 8%; }
         .rg-chip.c2 { top: 14%; right: 6%; }
@@ -328,7 +389,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .rg-orbit, .rg-cta .spinner { animation: none !important; }
+            .rg-orbit, .rg-cta .spinner, .rg-ring, .rg-mark,
+            .rg-mark::before, .rg-chip { animation: none !important; }
             .rg-cta, .rg-cta:hover { transition: none; }
         }
     </style>
@@ -342,6 +404,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <span class="rg-ring r2"></span>
                 <span class="rg-ring r3"></span>
                 <span class="rg-orbit"><i></i></span>
+                <span class="rg-orbit o2"><i></i></span>
 
                 <div class="rg-mark">
                     <iconify-icon icon="simple-icons:squarespace"></iconify-icon>
