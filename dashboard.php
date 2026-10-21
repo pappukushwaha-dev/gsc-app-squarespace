@@ -1550,7 +1550,7 @@ if (is_file($frPartial)) {
 
                     <!-- Metric & Percentage Change -->
                     <div class="flex items-baseline gap-2 mb-1">
-                        <h3 class="text-lg font-semibold text-blue-600 tracking-tight"
+                        <h3 id="kpi-clicks" class="text-lg font-semibold text-blue-600 tracking-tight"
                             title="<?= number_format((int)$kpi['clicks']) ?> clicks">
                             <?= gscShortNum($kpi['clicks']) ?>
                         </h3>
@@ -1559,7 +1559,7 @@ if (is_file($frPartial)) {
                     </div>
 
                     <!-- Date Range Subtext -->
-                    <p class="text-xs font-medium text-gray-400">
+                    <p class="text-xs font-medium text-gray-400 kpi-range-label">
                         <?= $kpiPrev ? htmlspecialchars($kpiRangeLabel) : 'Last 30 days' ?>
                     </p>
                 </div>
@@ -1593,7 +1593,7 @@ if (is_file($frPartial)) {
 
                     <!-- Metric & Percentage Change -->
                     <div class="flex items-baseline gap-2 mb-1">
-                        <h3 class="text-lg font-semibold text-purple-600 tracking-tight"
+                        <h3 id="kpi-impressions" class="text-lg font-semibold text-purple-600 tracking-tight"
                             title="<?= number_format((int)$kpi['impressions']) ?> impressions">
                             <?= gscShortNum($kpi['impressions']) ?>
                         </h3>
@@ -1602,7 +1602,7 @@ if (is_file($frPartial)) {
                     </div>
 
                     <!-- Date Range Subtext -->
-                    <p class="text-xs font-medium text-gray-400">
+                    <p class="text-xs font-medium text-gray-400 kpi-range-label">
                         <?= $kpiPrev ? htmlspecialchars($kpiRangeLabel) : 'Last 30 days' ?>
                     </p>
                 </div>
@@ -1636,8 +1636,8 @@ if (is_file($frPartial)) {
 
                     <!-- Metric & Percentage Change -->
                     <div class="flex items-baseline gap-2 mb-1">
-                        <h3 class="text-lg font-semibold text-slate-800 tracking-tight">
-                            <?= number_format((float)$kpi['ctr'], 2) ?>%
+                        <h3 id="kpi-ctr" class="text-
+                            <?= number_format((float)$kpi['ctr'], 2) ?>% font-semibold text-slate-800 tracking-tight">
                         </h3>
                         <?= gsc_sample_badge(gsc_is_sample('kpi')) ?>
                         <?php
@@ -1651,7 +1651,7 @@ if (is_file($frPartial)) {
                     </div>
 
                     <!-- Date Range Subtext -->
-                    <p class="text-xs font-medium text-gray-400">
+                    <p class="text-xs font-medium text-gray-400 kpi-range-label">
                         <?= $kpiPrev ? htmlspecialchars($kpiRangeLabel) : 'Last 30 days' ?>
                     </p>
                 </div>
@@ -1683,8 +1683,8 @@ if (is_file($frPartial)) {
 
                     <!-- Metric & Percentage Change -->
                     <div class="flex items-baseline gap-2 mb-1">
-                        <h3 class="text-lg font-semibold text-slate-800 tracking-tight">
-                            <?= number_format((float)$kpi['position'], 1) ?>
+                        <h3 id="kpi-position" class="text-
+                            <?= number_format((float)$kpi['position'], 1) ?> font-semibold text-slate-800 tracking-tight">
                         </h3>
                         <?= gsc_sample_badge(gsc_is_sample('kpi')) ?>
                         <?php
@@ -1698,7 +1698,7 @@ if (is_file($frPartial)) {
                     </div>
 
                     <!-- Date Range Subtext -->
-                    <p class="text-xs font-medium text-gray-400">
+                    <p class="text-xs font-medium text-gray-400 kpi-range-label">
                         <?= $kpiPrev ? htmlspecialchars($kpiRangeLabel) : 'Last 30 days' ?>
                     </p>
                 </div>
