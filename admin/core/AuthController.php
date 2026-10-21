@@ -58,3 +58,23 @@ class AuthController {
         return SessionManager::isAdminLoggedIn();
     }
 }
+/**
+ * Legacy alias — the earlier squarespace pages call this class name.
+ */
+if (!class_exists('AdminAuthController')) {
+    class AdminAuthController
+    {
+        public static function isAuthenticated(): bool
+        {
+            return AuthController::isAuthenticated();
+        }
+
+        public static function requireAuth(): void
+        {
+            if (!self::isAuthenticated()) {
+                header('Location: sign-in.php');
+                exit;
+            }
+        }
+    }
+}

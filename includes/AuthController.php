@@ -17,4 +17,3 @@ if (!class_exists('AuthController')) {
     }
 }
 
-echo 'auth_controller_loaded';

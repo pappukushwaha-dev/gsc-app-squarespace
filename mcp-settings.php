@@ -279,6 +279,7 @@ include './partials/layouts/layoutTop.php';
                   <div>
                     <p class="text-sm font-semibold text-gray-800"><?= h(ucfirst($a['client_name'] !== '' ? $a['client_name'] : 'Assistant')) ?></p>
                     <p class="text-xs text-gray-400">Added <?= h(substr((string)$a['created_at'], 0, 10)) ?>
+                      · <?= (int)($a['total_calls'] ?? 0) ?> calls
                       <?= $a['last_used_at'] !== null ? ' · Last used ' . h(str_replace(' ', ' ', substr((string)$a['last_used_at'], 0, 16))) : '' ?></p>
                   </div>
                 </div>
@@ -309,7 +310,8 @@ include './partials/layouts/layoutTop.php';
           </form>
         </div>
 
-        <?php if ($apiKeys === []): ?>
+        <?php $activeKeys = array_values(array_filter($apiKeys, static fn($k) => ($k['status'] ?? '') === 'active')); ?>
+        <?php if ($activeKeys === []): ?>
           <div class="rounded-xl border border-dashed border-gray-300 py-8 text-center px-4">
             <div class="text-2xl mb-1">🔑</div>
             <p class="text-sm font-medium text-gray-500">No API keys yet.</p>
@@ -317,27 +319,23 @@ include './partials/layouts/layoutTop.php';
           </div>
         <?php else: ?>
           <ul class="space-y-3">
-            <?php foreach ($apiKeys as $k): ?>
+            <?php foreach ($activeKeys as $k): ?>
               <li class="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3">
                 <div>
-                  <p class="text-sm font-semibold text-gray-800">Key ····<?= h($k['key_hint']) ?>
-                    <?php if (($k['status'] ?? '') !== 'active'): ?>
-                      <span class="ml-1 text-xs text-gray-400">(disabled)</span>
-                    <?php endif; ?>
-                  </p>
+                  <p class="text-sm font-semibold text-gray-800">Key ····<?= h($k['key_hint']) ?></p>
                   <p class="text-xs text-gray-400">Created <?= h(substr((string)$k['created_at'], 0, 10)) ?>
-                    <?= $k['last_used_at'] !== null ? ' · Last used ' . h(substr((string)$k['last_used_at'], 0, 16)) : ' · Never used' ?></p>
+                    <?= $k['last_used_at'] !== null ? ' · Last used ' . h(substr((string)$k['last_used_at'], 0, 16)) : ' · Never used' ?>
+                    · <?= (int)($k['total_calls'] ?? 0) ?> calls</p>
                 </div>
-                <?php if (($k['status'] ?? '') === 'active'): ?>
-                  <form method="post" onsubmit="return confirm('Revoke this API key?')">
-                    <input type="hidden" name="revoke_key_id" value="<?= (int)$k['id'] ?>">
-                    <button type="submit" class="text-sm font-medium text-red-600 border border-red-200 rounded-lg px-3 py-1.5 hover:bg-red-50">Revoke</button>
-                  </form>
-                <?php endif; ?>
+                <form method="post" onsubmit="return confirm('Revoke this API key?')">
+                  <input type="hidden" name="revoke_key_id" value="<?= (int)$k['id'] ?>">
+                  <button type="submit" class="text-sm font-medium text-red-600 border border-red-200 rounded-lg px-3 py-1.5 hover:bg-red-50">Revoke</button>
+                </form>
               </li>
             <?php endforeach; ?>
           </ul>
         <?php endif; ?>
+
       </div>
     </div>
 

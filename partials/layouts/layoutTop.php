@@ -44,7 +44,11 @@ if (!$shop) {
 }
 
 // If still no shop, redirect to install (requires shop parameter)
-if (!$shopId) {
+/* Admin pages (test-stores, paid-stores, mail-logs...) render this layout
+   without a shop session — only bounce when there is neither a shop
+   session nor an admin session. */
+$isAdminContext = !empty($_SESSION['admin_logged_in']);
+if (!$shopId && !$isAdminContext) {
     header("Location: sign-in.php");
     exit();
 }
