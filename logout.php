@@ -12,6 +12,10 @@ if (session_status() === PHP_SESSION_NONE) {
 include('/squarespace/googlesearchconsole/includes/config.php');
 $BASE_URL = rtrim(getenv('BASE_URL') ?: ($_ENV['BASE_URL'] ?? ''), '/');
 
+// Track the logout while the session data is still intact.
+require_once __DIR__ . '/includes/activity-logger.php';
+log_activity('logout');
+
 // Small helper to safely join URLs
 function url_join($base, $path) {
     return rtrim($base, '/') . '/' . ltrim($path, '/');
