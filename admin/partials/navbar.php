@@ -60,6 +60,14 @@ if (isset($_SESSION['shop_id'])) {
         error_log("Database error: " . $e->getMessage());
     }
 }
+
+/* Admin context: no shop in session - show the admin identity instead
+   of N/A (the shop identity only appears on shop-scoped pages). */
+if ($userEmail === 'N/A' && !empty($_SESSION['admin_username'])) {
+    $userEmail          = $_SESSION['admin_username'];
+    $siteDisplayNameWix = 'Administrator';
+    $initialsWix        = 'AD';
+}
 ?>
 
 <div class="navbar-header border-b border-neutral-200 dark:border-neutral-600">
