@@ -183,6 +183,7 @@ if (!function_exists('provisionInstance')) {
                 ':name'  => $verified['title'],
                 ':id'    => (int) $existing['id'],
             ]);
+            provision_site_profile($pdo, (string) $existing['shop_id'], (string) $verified['title'], $siteUrl);
             return ['shop_id' => (string) $existing['shop_id'], 'created' => false];
         }
 
@@ -202,7 +203,40 @@ if (!function_exists('provisionInstance')) {
             ':email' => $email,
         ]);
 
+        provision_site_profile($pdo, $shopId, (string) $verified['title'], $siteUrl);
+
         return ['shop_id' => $shopId, 'created' => true];
+    }
+}
+
+/* ---------- site profile ---------- */
+
+if (!function_exists('provision_site_profile')) {
+    /**
+     * Keeps SquarespaceSiteProfile populated with what we know at provision
+     * time (site title + website). The admin store-view and profile cards
+     * read from this table; the wizard's profile form can add more later.
+     */
+    function provision_site_profile(PDO $pdo, string $shopId, string $companyName, string $websiteUrl): void
+    {
+        $chk = $pdo->prepare('SELECT id FROM SquarespaceSiteProfile WHERE shop_id = :sid LIMIT 1');
+        $chk->execute([':sid' => $shopId]);
+
+        if ($chk->fetchColumn()) {
+            $u = $pdo->prepare(
+                'UPDATE SquarespaceSiteProfile
+                 SET company_name = :cn, website_url = :wu, updated_at = NOW(3)
+                 WHERE shop_id = :sid'
+            );
+            $u->execute([':cn' => $companyName, ':wu' => $websiteUrl, ':sid' => $shopId]);
+            return;
+        }
+
+        $i = $pdo->prepare(
+            'INSERT INTO SquarespaceSiteProfile (shop_id, company_name, website_url, created_at, updated_at)
+             VALUES (:sid, :cn, :wu, NOW(3), NOW(3))'
+        );
+        $i->execute([':sid' => $shopId, ':cn' => $companyName, ':wu' => $websiteUrl]);
     }
 }
 
