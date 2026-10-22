@@ -35,7 +35,7 @@ $shop_id = trim($_GET['shop_id']);
 // ===============================
 try {
 
-    $stmt = $pdo->prepare("SELECT domain FROM WixSite WHERE shop_id = ?");
+    $stmt = $pdo->prepare("SELECT domain FROM SquarespaceSite WHERE shop_id = ?");
     $stmt->execute([$shop_id]);
     $site = $stmt->fetch(PDO::FETCH_ASSOC);
 

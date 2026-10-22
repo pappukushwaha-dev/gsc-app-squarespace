@@ -35,7 +35,7 @@ try {
         $stmt = $pdo->prepare("
             SELECT email
             FROM google_accounts
-            WHERE shopId = :shop_id
+            WHERE shop_id = :shop_id
             ORDER BY id DESC
             LIMIT 1
         ");
@@ -222,10 +222,10 @@ try {
 
     // 4. Latest Registered Users
     $latestUsersStmt = $pdo->query("
-    SELECT 
+    SELECT
         shop_id,
-        shop_name AS site_display_name,
-        email     AS owner_email,
+        site_display_name,
+        owner_email,
         created_at
     FROM SquarespaceSite
     ORDER BY created_at DESC

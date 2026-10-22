@@ -12,9 +12,9 @@ if (session_status() === PHP_SESSION_NONE) {
 */
 $shopId = $_SESSION['shop_id'] ?? $_GET['shop_id'] ?? null;
 
-if (!$shopId && empty($publicPage)) {
-    /* Public pages (register/sign-in) include the layout with guests
-       allowed — the navbar renders in guest mode instead of bouncing. */
+$isAdminContext = !empty($_SESSION['admin_logged_in']);
+if (!$shopId && empty($publicPage) && !$isAdminContext) {
+    /* Admin pages render this navbar without a shop session — allowed. */
     header('Location: sign-in.php');
     exit;
 }

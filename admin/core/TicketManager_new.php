@@ -59,9 +59,9 @@ class TicketManager
                 t.ticket_number LIKE :search_a
                 OR t.subject       LIKE :search_b
                 OR t.shop_id   LIKE :search_c
-                OR hs.email        LIKE :search_d
-                OR hs.shop_name    LIKE :search_e
-                OR hs.shop_domain  LIKE :search_f
+                OR hs.owner_email        LIKE :search_d
+                OR hs.site_display_name    LIKE :search_e
+                OR hs.domain  LIKE :search_f
                 OR hs.domain       LIKE :search_g
             ) ";
             $like = '%' . $search . '%';
@@ -105,12 +105,12 @@ class TicketManager
                 t.updated_at,
                 t.last_message_at,
                 COALESCE(t.last_message_at, t.updated_at, t.created_at) AS last_activity,
-                hs.shop_name,
-                hs.shop_domain,
+                hs.site_display_name,
                 hs.domain,
-                hs.email AS customer_email
+                hs.domain,
+                hs.owner_email AS customer_email
             FROM tickets t
-            LEFT JOIN HlSite hs
+            LEFT JOIN SquarespaceSite hs
                 ON hs.shop_id COLLATE utf8mb4_unicode_ci
                  = t.shop_id  COLLATE utf8mb4_unicode_ci
             {$where}
@@ -137,7 +137,7 @@ class TicketManager
         $sql = "
             SELECT COUNT(t.id)
             FROM tickets t
-            LEFT JOIN HlSite hs
+            LEFT JOIN SquarespaceSite hs
                 ON hs.shop_id COLLATE utf8mb4_unicode_ci
                  = t.shop_id  COLLATE utf8mb4_unicode_ci
             {$where}
@@ -162,13 +162,13 @@ class TicketManager
         $stmt = self::$pdo->prepare("
             SELECT
                 t.*,
-                hs.shop_name,
-                hs.shop_domain,
+                hs.site_display_name,
                 hs.domain,
-                hs.email AS customer_email,
+                hs.domain,
+                hs.owner_email AS customer_email,
                 hs.is_active AS shop_is_active
             FROM tickets t
-            LEFT JOIN HlSite hs
+            LEFT JOIN SquarespaceSite hs
                 ON hs.shop_id COLLATE utf8mb4_unicode_ci
                  = t.shop_id  COLLATE utf8mb4_unicode_ci
             WHERE t.id = :id

@@ -59,8 +59,8 @@ class TicketManager
                 t.ticket_number LIKE :search_q
                 OR t.subject       LIKE :search_q
                 OR t.shop_id   LIKE :search_q
-                OR ws.email        LIKE :search_q
-                OR ws.shop_name    LIKE :search_q
+                OR ws.owner_email        LIKE :search_q
+                OR ws.site_display_name    LIKE :search_q
             )";
             $params[':search_q'] = '%' . $search . '%';
         }
@@ -102,8 +102,8 @@ class TicketManager
                 t.created_at,
                 t.updated_at,
                 t.last_message_at,
-                ws.shop_name,
-                ws.email      AS customer_email,
+                ws.site_display_name,
+                ws.owner_email      AS customer_email,
                 ws.domain     AS site_domain,
                 ws.shop_domain AS shop_domain
             FROM tickets t
@@ -186,8 +186,8 @@ class TicketManager
         $stmt = self::$pdo->prepare("
             SELECT
                 t.*,
-                ws.shop_name,
-                ws.email       AS customer_email,
+                ws.site_display_name,
+                ws.owner_email       AS customer_email,
                 ws.domain      AS site_domain,
                 ws.shop_domain AS shop_domain,
                 ws.is_active   AS site_is_active

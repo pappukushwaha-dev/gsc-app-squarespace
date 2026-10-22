@@ -26,7 +26,7 @@ class ReviewManager
                     r.rating, 
                     r.comment, 
                     r.created_at,
-                    s.shop_name AS store_name,
+                    s.site_display_name AS store_name,
                     CONCAT('https://', s.shop_domain) AS site_url
                 FROM app_reviews r
                 LEFT JOIN SquarespaceSite s ON r.shop_id = s.shop_id
@@ -93,7 +93,7 @@ class ReviewManager
                         r.email LIKE :q OR
                         r.comment LIKE :q OR
                         r.rating LIKE :q OR
-                        s.shop_name LIKE :q OR
+                        s.site_display_name LIKE :q OR
                         s.shop_domain LIKE :q
                     )
                 ";
@@ -124,7 +124,7 @@ class ReviewManager
             $sql = "
                 SELECT 
                     r.*, 
-                    s.shop_name AS store_name,
+                    s.site_display_name AS store_name,
                     CONCAT('https://', s.shop_domain) AS site_url
                 FROM app_reviews r
                 LEFT JOIN SquarespaceSite s ON r.shop_id = s.shop_id

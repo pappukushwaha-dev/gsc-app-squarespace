@@ -929,7 +929,7 @@ $submissionStats30d = ['total' => 0, 'success' => 0, 'errors' => 0, 'last_at' =>
 $recentInspections  = [];
 if ($shopId) {
     try {
-        $stmt = $pdo->prepare("SELECT company_name, business_name, category_name, business_type, language, address, email, phone, website_url, logo_url, created_at FROM WixSiteProfile WHERE shop_id = ? LIMIT 1");
+        $stmt = $pdo->prepare("SELECT company_name, business_name, category_name, business_type, language, address, email, phone, website_url, logo_url, created_at FROM SquarespaceSiteProfile WHERE shop_id = ? LIMIT 1");
         $stmt->execute([$shopId]);
         $siteProfile = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
     } catch (Throwable $e) {
