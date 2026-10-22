@@ -24,7 +24,8 @@ if (!$instanceId) {
 }
 
 // Restore session safely
-$_SESSION['instance_id'] = $instanceId;
+// Squarespace pages key off shop_id - the OAuth state carries it.
+$_SESSION['shop_id'] = $instanceId;
 
 /* ==========================================================
    2️⃣ Validate OAuth code
@@ -166,5 +167,5 @@ google_save_token($pdo, $instanceId, $token, $userInfoArray);
 
         $resp = curl_exec($ch);
         curl_close($ch);
-header("Location: " . APP_URL . "setup-wizard.php?instanceId=" . urlencode($instanceId) . "&step=2");
+header("Location: " . APP_URL . "setup-wizard.php?shop_id=" . urlencode($instanceId) . "&step=2");
 exit;

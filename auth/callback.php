@@ -1,5 +1,19 @@
 <?php
-ini_set("display_errors", 1);
+/* ============================================================
+   Squarespace app — Google OAuth callback
+   Google redirects here with ?code= & ?state= (state = shop_id,
+   set by connect_google.php). We exchange the code at Google's
+   token endpoint, save access + refresh tokens, mark the store
+   connected, and send the user back to the setup wizard.
+
+   (The previous version of this file was an Ecwid callback
+   copy-paste: it exchanged the code at my.ecwid.com, fetched the
+   store profile from app.ecwid.com, wrote to columns that do not
+   exist on SquarespaceSite, and never saved the refresh_token —
+   Google connect could never work.)
+============================================================ */
+
+ini_set('display_errors', 0);
 error_reporting(E_ALL & ~E_DEPRECATED);
 
 session_start();
@@ -7,230 +21,151 @@ session_start();
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/credentials.php';
 
+/* ==========================================================
+   1. Params — Google returns ?code= & ?state= (state = shop_id)
+========================================================== */
 
-/* ============================================
-   1. Validate Required Params
-============================================ */
+$code   = $_GET['code'] ?? '';
+$shopId = $_GET['state'] ?? '';
 
-if (empty($_GET['code']) || empty($_GET['store_id'])) {
+if ($code === '' || $shopId === '') {
     http_response_code(400);
-    exit("Missing authorization parameters.");
+    exit('Missing authorization parameters.');
 }
 
-$code     = $_GET['code'];
-$store_id = $_GET['store_id'];
+/* ==========================================================
+   2. Google app credentials (google_settings — admin panel)
+========================================================== */
 
-/* ============================================
-   2. Load App Credentials Dynamically
-============================================ */
-
-$stmt = $pdo->prepare("
-    SELECT client_id, client_secret, redirect_uri 
-    FROM ecwid_settings 
-    WHERE id = 1 
-    LIMIT 1
-");
+$stmt = $pdo->prepare('SELECT client_id, client_secret, redirect_uri FROM google_settings LIMIT 1');
 $stmt->execute();
 $app = $stmt->fetch(PDO::FETCH_ASSOC);
 
-if (!$app) {
+if (!$app || empty($app['client_id']) || empty($app['client_secret']) || empty($app['redirect_uri'])) {
     http_response_code(500);
-    exit("App credentials not configured.");
+    exit('Google credentials not configured. Set them in the admin panel first.');
 }
 
-$client_id     = $app['client_id'];
+/* client_secret is stored AES-encrypted with ENCRYPTION_KEY */
 $client_secret = decrypt($app['client_secret'], ENCRYPTION_KEY);
-$redirect_uri  = $app['redirect_uri'];
+if ($client_secret === false || $client_secret === null || $client_secret === '') {
+    http_response_code(500);
+    exit('Client secret could not be decrypted.');
+}
 
-/* ============================================
-   3. Exchange Code For Access Token
-============================================ */
+/* ==========================================================
+   3. Exchange the authorization code at Google's endpoint
+========================================================== */
 
-$token_url = "https://my.ecwid.com/api/oauth/token";
-
-$postData = [
-    'client_id'     => $client_id,
-    'client_secret' => $client_secret,
-    'code'          => $code,
-    'redirect_uri'  => $redirect_uri,
-    'grant_type'    => 'authorization_code'
-];
-
-$ch = curl_init($token_url);
+$ch = curl_init('https://oauth2.googleapis.com/token');
 curl_setopt_array($ch, [
     CURLOPT_POST           => true,
-    CURLOPT_POSTFIELDS     => http_build_query($postData),
+    CURLOPT_POSTFIELDS     => http_build_query([
+        'client_id'     => $app['client_id'],
+        'client_secret' => $client_secret,
+        'code'          => $code,
+        'redirect_uri'  => $app['redirect_uri'],
+        'grant_type'    => 'authorization_code',
+    ]),
     CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT        => 30
+    CURLOPT_TIMEOUT        => 30,
 ]);
-
 $response = curl_exec($ch);
-
-if (curl_errno($ch)) {
-    $error = curl_error($ch);
-    curl_close($ch);
-    http_response_code(500);
-    exit("cURL error: " . $error);
-}
-
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+$httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
-if ($httpCode !== 200) {
-    http_response_code($httpCode);
-    exit("Token request failed: " . $response);
-}
-
-$token_data = json_decode($response, true);
-
-if (empty($token_data['access_token'])) {
+$token = json_decode((string) $response, true);
+if ($httpCode !== 200 || empty($token['access_token'])) {
     http_response_code(500);
-    exit("Access token not returned.");
+    exit('Token exchange failed: ' . substr((string) ($token['error_description'] ?? $response), 0, 200));
 }
 
-$access_token = $token_data['access_token'];
+$accessToken  = $token['access_token'];
+/* offline access: Google returns refresh_token on the first consent;
+   on re-consents it may omit it, so keep any stored value. */
+$refreshToken = $token['refresh_token'] ?? null;
+$expiresIn    = (int) ($token['expires_in'] ?? 3600);
+$expiresAt    = date('Y-m-d H:i:s', time() + $expiresIn);
 
-/* ============================================
-   4. Check If Store Already Exists
-============================================ */
+/* ==========================================================
+   4. Connected Google account email (for display/MCP)
+========================================================== */
 
-$stmt = $pdo->prepare("
-    SELECT id 
-    FROM SquarespaceSite 
-    WHERE shop_id = ? 
-    LIMIT 1
-");
-$stmt->execute([$store_id]);
-$existing = $stmt->fetch(PDO::FETCH_ASSOC);
-
-if ($existing) {
-
-    $update = $pdo->prepare("
-        UPDATE SquarespaceSite
-        SET access_token = ?, 
-            updated_at = NOW(), 
-            is_active = 1
-        WHERE shop_id = ?
-    ");
-
-    $update->execute([$access_token, $store_id]);
-
-    $_SESSION['shop_id'] = $store_id;
-    $_SESSION['user_id']     = $existing['id'];
-    $_SESSION['app']         = 'ecwid';
-
-    header("Location: " . HOST_URL . "setup-wizard.php");
-    exit;
-}
-
-/* ============================================
-   5. Fetch Store Profile
-============================================ */
-
-$profileCurl = curl_init("https://app.ecwid.com/api/v3/{$store_id}/profile");
-
-curl_setopt_array($profileCurl, [
+$googleEmail = null;
+$ch = curl_init('https://www.googleapis.com/oauth2/v2/userinfo');
+curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_HTTPHEADER => [
-        "Authorization: Bearer {$access_token}"
-    ],
-    CURLOPT_TIMEOUT => 30
+    CURLOPT_HTTPHEADER     => ["Authorization: Bearer $accessToken"],
+    CURLOPT_TIMEOUT        => 15,
 ]);
-
-$profileResponse = curl_exec($profileCurl);
-
-if (curl_errno($profileCurl)) {
-    $error = curl_error($profileCurl);
-    curl_close($profileCurl);
-    http_response_code(500);
-    exit("Profile fetch error: " . $error);
+$ui = json_decode((string) curl_exec($ch), true);
+curl_close($ch);
+if (is_array($ui) && !empty($ui['email'])) {
+    $googleEmail = (string) $ui['email'];
 }
 
-curl_close($profileCurl);
+/* ==========================================================
+   5. Persist google_accounts (the app + MCP read this)
+========================================================== */
 
-$store_data = json_decode($profileResponse, true);
+$chk = $pdo->prepare('SELECT id FROM google_accounts WHERE shop_id = :sid LIMIT 1');
+$chk->execute([':sid' => $shopId]);
+$exists = $chk->fetchColumn();
 
-if (empty($store_data)) {
-    http_response_code(500);
-    exit("Failed to fetch store profile.");
+if ($exists) {
+    $upd = $pdo->prepare("
+        UPDATE google_accounts
+        SET access_token    = :at,
+            refresh_token   = COALESCE(NULLIF(:rt, ''), refresh_token),
+            email           = COALESCE(:em, email),
+            connected       = 1,
+            token_expires_at = :exp,
+            updated_at      = NOW()
+        WHERE shop_id = :sid
+    ");
+    $upd->execute([
+        ':at'  => $accessToken,
+        ':rt'  => $refreshToken,
+        ':em'  => $googleEmail,
+        ':exp' => $expiresAt,
+        ':sid' => $shopId,
+    ]);
+} else {
+    $ins = $pdo->prepare("
+        INSERT INTO google_accounts
+            (shop_id, email, access_token, refresh_token, connected, token_expires_at, created_at, updated_at)
+        VALUES
+            (:sid, :em, :at, :rt, 1, :exp, NOW(), NOW())
+    ");
+    $ins->execute([
+        ':sid' => $shopId,
+        ':em'  => $googleEmail,
+        ':at'  => $accessToken,
+        ':rt'  => $refreshToken,
+        ':exp' => $expiresAt,
+    ]);
 }
 
-/* ============================================
-   6. Extract Required Data
-============================================ */
+/* ==========================================================
+   6. Mark the SquarespaceSite row installed/active
+========================================================== */
 
-$email      = $store_data['account']['accountEmail'] ?? '';
-$shop_name  = $store_data['generalInfo']['storeUrl'] ?? '';
-$domain     = parse_url($shop_name, PHP_URL_HOST);
-$owner_id   = $store_data['account']['accountId'] ?? '';
-
-/* ============================================
-   7. Insert Store Record
-============================================ */
-
-$stmt = $pdo->prepare("
-    INSERT INTO SquarespaceSite
-    (
-        shop_id,
-        shop_id,
-        shop_domain,
-        domain,
-        shop_name,
-        event_type,
-        app_id,
-        access_token,
-        shop_owner_id,
-        email,
-        raw_decoded,
-        shop_data,
-        is_active
-    )
-    VALUES (?, ?, ?, ?, ?, 'install', ?, ?, ?, ?, ?, ?, 1)
+$upd = $pdo->prepare("
+    UPDATE SquarespaceSite
+    SET access_token = :at,
+        is_active    = 1,
+        is_verified  = 1,
+        event_type   = 'install',
+        updated_at   = NOW()
+    WHERE shop_id = :sid
 ");
+$upd->execute([':at' => $accessToken, ':sid' => $shopId]);
 
-$stmt->execute([
-    $store_id,
-    $store_id,
-    $domain,
-    $domain,
-    $shop_name,
-    $client_id,
-    $access_token,
-    $owner_id,
-    $email,
-    json_encode($_GET),
-    json_encode($store_data)
-]);
+/* ==========================================================
+   7. Session + back to the setup wizard
+========================================================== */
 
-$user_id = $pdo->lastInsertId();
+$_SESSION['shop_id'] = $shopId;
 
-/* ============================================
-   8. Insert Store Profile
-============================================ */
-
-$stmt2 = $pdo->prepare("
-    INSERT INTO SquarespaceSiteProfile
-    (
-        shop_id,
-        email,
-        website_url
-    )
-    VALUES (?, ?, ?)
-");
-
-$stmt2->execute([
-    $store_id,
-    $email,
-    $shop_name
-]);
-
-/* ============================================
-   9. Session + Redirect
-============================================ */
-
-$_SESSION['shop_id'] = $store_id;
-$_SESSION['user_id']     = $user_id;
-$_SESSION['app']         = 'ecwid';
-
-header("Location: " . HOST_URL . "setup-wizard.php");
+header('Location: setup-wizard.php');
 exit;
