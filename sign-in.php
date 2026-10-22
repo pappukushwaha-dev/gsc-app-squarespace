@@ -5,9 +5,9 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// 1) If already logged in (instance in session), go to index.php
-if (!empty($_SESSION['instance_id'])) {
-    header('Location: index.php');
+// 1) If already logged in (shop in session), go to the dashboard
+if (!empty($_SESSION['shop_id'])) {
+    header('Location: dashboard.php');
     exit;
 }
 
@@ -164,8 +164,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $email = filter_var(trim($data['email'] ?? ''), FILTER_VALIDATE_EMAIL);
             if (!$email) json_err('Please provide a valid email.');
 
-            // Lookup instance_id from EcwidSite by email
-            $stmt = $pdo->prepare("SELECT instance_id FROM EcwidSite WHERE email = ? LIMIT 1");
+            // Lookup shop_id from SquarespaceSite by owner email
+            $stmt = $pdo->prepare("SELECT shop_id FROM SquarespaceSite WHERE owner_email = ? LIMIT 1");
             $stmt->execute([$email]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -199,8 +199,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$email) json_err('Please provide a valid email.');
             if (!preg_match('/^\d{6}$/', $otp)) json_err('Invalid OTP format.');
 
-            // Get instance_id for this email (we did not set it in session yet)
-            $stmt = $pdo->prepare("SELECT instance_id FROM EcwidSite WHERE email = ? LIMIT 1");
+            // Get shop_id for this email (we did not set it in session yet)
+            $stmt = $pdo->prepare("SELECT shop_id FROM SquarespaceSite WHERE owner_email = ? LIMIT 1");
             $stmt->execute([$email]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$row) json_err('Invalid or expired OTP.', 401);
@@ -220,22 +220,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $upd = $pdo->prepare("UPDATE otp_verifications SET is_verified = 1 WHERE id = ?");
             $upd->execute([$otpRow['id']]);
 
-            // Now we log the user in: set session instance and redirect
+            // Now we log the user in: set the session shop and redirect.
+            // Squarespace pages key off shop_id (NOT instance_id).
             unset($_SESSION['email']);
-            $_SESSION['instanceid'] = $instance_id; // single source of truth
-            $_SESSION['instance_id']  =  $instance_id;
+            $_SESSION['shop_id'] = $instance_id;
             session_regenerate_id(true);
 
-            json_ok(['redirect' => 'index.php']);
+            json_ok(['redirect' => 'dashboard.php']);
 
         } else {
             json_err('Bad request', 400);
         }
-    }catch (Throwable $e) {
-    error_log($e);
-    // TEMP: expose the root cause so we can fix it fast
-    json_err($e->getMessage(), 500);
-}
+    } catch (Throwable $e) {
+        error_log('[sign-in] ' . $e->getMessage());
+        json_err('Something went wrong. Please try again.', 500);
+    }
 
     // ensure no HTML is sent to fetch()
     exit;
