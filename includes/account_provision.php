@@ -188,10 +188,10 @@ if (!function_exists('provisionInstance')) {
 
         $ins = $pdo->prepare("
             INSERT INTO SquarespaceSite
-                (shop_id, site_id, site_url, site_display_name, domain,
+                (shop_id, site_id, site_url, site_display_name, domain, event_type,
                  owner_email, is_active, is_verified, site_verified_at, created_at, updated_at)
             VALUES
-                (:iid, :sid, :url, :name, :dom, :email, 1, 1, NOW(), NOW(), NOW())
+                (:iid, :sid, :url, :name, :dom, 'install', :email, 1, 1, NOW(), NOW(), NOW())
         ");
         $ins->execute([
             ':iid'  => $shopId,
