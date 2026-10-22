@@ -123,9 +123,9 @@ try {
     */
 
     $q = $pdo->prepare("
-           SELECT email 
-    FROM SquarespaceSite 
-    WHERE shop_id = :id 
+           SELECT owner_email
+    FROM SquarespaceSite
+    WHERE shop_id = :id
       AND is_active = 1
     LIMIT 1
 
@@ -239,6 +239,7 @@ try {
             comment,
             ip_address,
             user_agent,
+            submitted,
             created_at,
             updated_at
         )
@@ -250,6 +251,7 @@ try {
             :comment,
             :ip,
             :agent,
+            1,
             NOW(),
             NOW()
         )
@@ -275,10 +277,6 @@ try {
         ':agent' =>
             $userAgent
     ]);
-
-// Any submission silences the review popup permanently.
-try { $pdo->prepare("UPDATE app_reviews SET submitted = 1 WHERE instance_id = ?")
-    ->execute([$instanceId]); } catch (Throwable $e) { /* silent */ }
 
     echo json_encode([
 

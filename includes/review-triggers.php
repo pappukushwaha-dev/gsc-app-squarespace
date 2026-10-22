@@ -23,7 +23,7 @@ if (!function_exists('review_valid_trigger')) {
     function review_is_submitted($pdo, string $instanceId): bool
     {
         $stmt = $pdo->prepare(
-            'SELECT submitted FROM app_reviews WHERE instance_id = :id ORDER BY id DESC LIMIT 1'
+            'SELECT submitted FROM app_reviews WHERE shop_id = :id ORDER BY id DESC LIMIT 1'
         );
         $stmt->execute([':id' => $instanceId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
