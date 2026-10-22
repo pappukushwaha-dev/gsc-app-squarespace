@@ -38,7 +38,7 @@ if (isset($_SESSION['shop_id'])) {
     $shopId = $_SESSION['shop_id'];
 
     try {
-        $stmt = $pdo->prepare("SELECT `owner_email`, `site_display_name` FROM `WixSite` WHERE `shop_id` = ? LIMIT 1");
+        $stmt = $pdo->prepare("SELECT `owner_email`, `site_display_name` FROM `SquarespaceSite` WHERE `shop_id` = ? LIMIT 1");
         $stmt->execute([$shopId]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 

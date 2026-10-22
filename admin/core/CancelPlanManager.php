@@ -22,7 +22,7 @@ class CancelPlanManager
                 SELECT 
                     r.id, 
                     r.shop_id, 
-                    w.email, 
+                    w.owner_email, 
                     r.current_step, 
                     r.join_reason, 
                     r.leave_reason, 
@@ -31,7 +31,7 @@ class CancelPlanManager
                     w.site_display_name AS store_name, 
                     w.site_url
                 FROM cancellation_sessions r
-                LEFT JOIN WixSite w ON r.shop_id = w.shop_id
+                LEFT JOIN SquarespaceSite w ON r.shop_id = w.shop_id
                 WHERE 1=1
             ";
 
@@ -40,7 +40,7 @@ class CancelPlanManager
             if (!empty($search)) {
                 $sql .= "
                     AND (
-                        w.email LIKE :q OR
+                        w.owner_email LIKE :q OR
                         r.join_reason LIKE :q OR
                         r.leave_reason LIKE :q OR
                         r.offer_type LIKE :q OR
@@ -84,7 +84,7 @@ class CancelPlanManager
             $sql = "
                 SELECT COUNT(*) 
                 FROM cancellation_sessions r
-                LEFT JOIN WixSite w ON r.shop_id = w.shop_id
+                LEFT JOIN SquarespaceSite w ON r.shop_id = w.shop_id
                 WHERE 1=1
             ";
 
@@ -131,7 +131,7 @@ class CancelPlanManager
                     w.site_display_name AS store_name, 
                     w.site_url
                 FROM cancellation_sessions r
-                LEFT JOIN WixSite w ON r.shop_id = w.shop_id
+                LEFT JOIN SquarespaceSite w ON r.shop_id = w.shop_id
                 WHERE r.id = ?
                 LIMIT 1
             ";
