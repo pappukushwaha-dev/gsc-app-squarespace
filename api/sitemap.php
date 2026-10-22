@@ -141,8 +141,16 @@ $allUrls = array_values(array_unique($allUrls));
 // ===============================
 // 7️⃣ Return JSON Response
 // ===============================
+// First successful sitemap submit -> review trigger (marked once).
+$showReview = false;
+try {
+    require_once __DIR__ . '/../includes/review-triggers.php';
+    $showReview = review_mark_trigger($pdo, (string) $shop_id, 'sitemap_submitted');
+} catch (Throwable $e) { /* silent */ }
+
 echo json_encode([
     "status" => true,
+    "show_review" => $showReview,
     "shop_id" => $shop_id,
     "domain" => $domain,
     "total_urls" => count($allUrls),
