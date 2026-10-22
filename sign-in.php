@@ -187,6 +187,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $ins = $pdo->prepare($sql);
             $ins->execute([$email, $otp, $expires_at, $instance_id]);
 
+            /* TEMP: SMTP (admin_settings) is not configured yet — until then
+               the OTP lands in the error log so login stays testable.
+               Remove once SMTP is set up in the admin panel. */
+            error_log('[otp] ' . $email . ' => ' . $otp);
+
             //  sendOtpEmail($email, $otp);
             if (!sendOtpEmail($pdo, $email, $otp)) {
                 json_err("Mail send failed", 500);
