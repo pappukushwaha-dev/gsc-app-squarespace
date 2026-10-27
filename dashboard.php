@@ -5134,7 +5134,7 @@ document.querySelectorAll('.top-tab').forEach(btn => {
             return;
         }
 
-        fetch(`api/dbSchema/other_apps.php?shop_id=${shopId}`)
+        fetch(`api/index-apps.php?shop_id=${shopId}`)
             .then(res => res.json())
             .then(res => {
                 if (!res.success || !res.data || res.data.length === 0) {
