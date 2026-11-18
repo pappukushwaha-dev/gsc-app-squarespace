@@ -1,14 +1,20 @@
 <?php
-$title = 'Reviews';
-$subTitle = 'Reviews';
+/**
+ * admin/cancel-plan.php
+ *
+ * What merchants answered in the in-app cancel flow (cancellation_sessions):
+ * why they installed, why they leave, which help was offered, and how it
+ * ended (cancelled / came back / kept / closed), plus their plan today.
+ */
+$title    = 'Cancel Plan';
+$subTitle = 'Cancellation feedback';
 
-ini_set('display_errors', 1);
+ini_set('display_errors', '0');
 error_reporting(E_ALL & ~E_DEPRECATED);
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/core/SessionManager.php';
 require_once __DIR__ . '/core/AuthController.php';
-require_once __DIR__ . '/core/ReviewManager.php';
 require_once __DIR__ . '/core/CancelPlanManager.php';
 
 SessionManager::startDatabaseSession();
@@ -20,59 +26,80 @@ if (!AuthController::isAuthenticated()) {
 
 CancelPlanManager::initialize($pdo);
 
-// Pagination / Search
 $perPage = (int)($_GET['show'] ?? 10);
-$currentPage = (int)($_GET['page'] ?? 1);
-$searchQuery = $_GET['search'] ?? '';
+$perPage = in_array($perPage, [10, 25, 50, 100], true) ? $perPage : 10;
+$currentPage  = max(1, (int)($_GET['page'] ?? 1));
+$searchQuery  = trim((string)($_GET['search'] ?? ''));
+$resultFilter = (string)($_GET['result'] ?? '');
+if ($resultFilter !== 'open' && !isset(CancelPlanManager::RESULTS[$resultFilter])) {
+    $resultFilter = '';
+}
 
-$reviews = CancelPlanManager::getFilteredReviews($searchQuery, $perPage, $currentPage);
-$totalRows = CancelPlanManager::getTotalReviews($searchQuery);
-$totalPages = max(1, ceil($totalRows / $perPage));
+$rows       = CancelPlanManager::getFilteredSessions($searchQuery, $resultFilter, $perPage, $currentPage);
+$totalRows  = CancelPlanManager::getTotal($searchQuery, $resultFilter);
+$totalPages = max(1, (int)ceil($totalRows / $perPage));
+$summary    = CancelPlanManager::getSummary();
 
-// AJAX Reload Script
+$h = static fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES, 'UTF-8');
+
+$badge = [
+    'success' => 'bg-success-100 text-success-600 dark:bg-success-600/20 dark:text-success-400',
+    'danger'  => 'bg-danger-100 text-danger-600 dark:bg-danger-600/20 dark:text-danger-400',
+    'warning' => 'bg-warning-100 text-warning-600 dark:bg-warning-600/20 dark:text-warning-400',
+    'info'    => 'bg-primary-100 text-primary-600 dark:bg-primary-600/20 dark:text-primary-400',
+    'neutral' => 'bg-neutral-100 text-neutral-600 dark:bg-neutral-600/20 dark:text-neutral-300',
+];
+$resultBadge = static function (?string $a) use ($badge): array {
+    switch ((string)$a) {
+        case 'cancelled':         return ['Cancelled', $badge['danger']];
+        case 'resumed':           return ['Came back', $badge['success']];
+        case 'kept_subscription': return ['Kept plan', $badge['success']];
+        case 'accepted_offer':    return ['Clicked offer', $badge['info']];
+        case 'abandoned':         return ['Closed flow', $badge['neutral']];
+        default:                  return ['Not finished', $badge['warning']];
+    }
+};
+$offerLabels = [
+    'support' => 'Contact support', 'guided_setup' => 'Guided setup', 'free_plan_info' => 'Free plan info',
+    'reconnect' => 'Reconnect Google', 'seo_review' => 'SEO review', 'data_check' => 'Data check',
+    'feedback' => 'Feedback', 'none' => 'No offer',
+];
+/** Plan today, from app_subscriptions (same rules as the app's sidebar). */
+$planToday = static function (array $r) use ($badge): array {
+    if (empty($r['plan_name'])) {
+        return ['No paid plan', $badge['neutral']];
+    }
+    $live    = in_array(strtolower((string)$r['sub_status']), ['active', 'trialing', 'past_due'], true);
+    $expires = !empty($r['expires_on']) ? strtotime((string)$r['expires_on']) : null;
+    if ($live && empty($r['cancelled_at']) && ($expires === null || $expires + 86400 > time())) {
+        return ['Active, renews', $badge['success']];
+    }
+    if ($expires && $expires > time()) {
+        return ['Ends ' . date('j M Y', $expires), $badge['warning']];
+    }
+    return ['Ended', $badge['danger']];
+};
+
 $script = '
 <script>
     $(document).ready(function () {
-
-        function fetchReviews(page = 1) {
-            var perPage = $("#per-page-select").val();
-            var searchQuery = $("#search-input").val();
-
-            var url = "cancel-plan.php?show=" + perPage + "&page=" + page;
-            if (searchQuery) {
-                url += "&search=" + encodeURIComponent(searchQuery);
-            }
-
-            $.get(url, { ajax: 1 }, function (response) {
-
-                $(".reviews-container").html($(response).find(".reviews-container").html());
-                $(".pagination").html($(response).find(".pagination").html());
-
-                // Update browser URL
-                var newUrl = new URL(window.location.href);
-                newUrl.searchParams.set("show", perPage);
-                newUrl.searchParams.set("page", page);
-                if (searchQuery) newUrl.searchParams.set("search", searchQuery);
-                else newUrl.searchParams.delete("search");
-
-                window.history.pushState({}, "", newUrl);
+        var timer = null;
+        function fetchRows(page) {
+            var params = new URLSearchParams();
+            params.set("show", $("#per-page-select").val());
+            params.set("page", page || 1);
+            var q = $("#search-input").val(); if (q) params.set("search", q);
+            var r = $("#result-select").val(); if (r) params.set("result", r);
+            $.get("cancel-plan.php?" + params.toString(), function (response) {
+                var $r = $("<div>").html(response);
+                $(".cp-table").html($r.find(".cp-table").html());
+                $(".cp-pager").html($r.find(".cp-pager").html());
+                window.history.replaceState({}, "", "cancel-plan.php?" + params.toString());
             });
         }
-
-        $("#search-input").on("keyup", function () {
-            fetchReviews(1);
-        });
-
-        $("#per-page-select").on("change", function () {
-            fetchReviews(1);
-        });
-
-        $(document).on("click", ".pagination a", function (e) {
-            e.preventDefault();
-            var page = $(this).data("page") || 1;
-            fetchReviews(page);
-        });
-
+        $("#search-input").on("input", function () { clearTimeout(timer); timer = setTimeout(function () { fetchRows(1); }, 300); });
+        $("#per-page-select, #result-select").on("change", function () { fetchRows(1); });
+        $(document).on("click", ".cp-pager a[data-page]", function (e) { e.preventDefault(); fetchRows($(this).data("page")); });
     });
 </script>
 ';
@@ -80,316 +107,188 @@ $script = '
 include './partials/layouts/layoutTop.php';
 ?>
 
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <?php foreach ([
+        ['Cancel flows started', $summary['total'], 'tabler:list-details', 'text-primary-600'],
+        ['Cancelled', $summary['cancelled'], 'tabler:calendar-cancel', 'text-danger-600'],
+        ['Saved (kept / came back)', $summary['saved'], 'tabler:heart-handshake', 'text-success-600'],
+        ['Closed / not finished', $summary['abandoned'], 'tabler:door-exit', 'text-neutral-500'],
+    ] as [$label, $value, $icon, $color]): ?>
+        <div class="card rounded-xl border-0 p-5 bg-white dark:bg-neutral-700">
+            <div class="flex items-center justify-between gap-3">
+                <div>
+                    <p class="text-sm text-neutral-500 dark:text-neutral-300 mb-1"><?= $h($label) ?></p>
+                    <p class="text-2xl font-bold dark:text-white"><?= (int)$value ?></p>
+                </div>
+                <iconify-icon icon="<?= $h($icon) ?>" class="text-3xl <?= $h($color) ?>"></iconify-icon>
+            </div>
+        </div>
+    <?php endforeach; ?>
+</div>
+
 <div class="card rounded-xl border-0 overflow-hidden">
 
-    <div class="card-header border-b bg-white dark:bg-neutral-700 py-4 px-6 flex items-center gap-3 justify-between">
-        <div class="flex items-center gap-3">
-            <span class="text-base font-medium">Show</span>
+    <div class="card-header border-b bg-white dark:bg-neutral-700 py-4 px-6 flex flex-wrap items-center gap-3">
+        <span class="text-base font-medium">Show</span>
+        <select id="per-page-select" class="form-select form-select-sm w-auto dark:bg-neutral-600 rounded-lg">
+            <?php foreach ([10, 25, 50, 100] as $n): ?>
+                <option value="<?= $n ?>" <?= $perPage === $n ? 'selected' : '' ?>><?= $n ?></option>
+            <?php endforeach; ?>
+        </select>
 
-            <select id="per-page-select"
-                class="form-select form-select-sm w-auto dark:bg-neutral-600 rounded-lg">
-                <option value="10" <?= $perPage == 10 ? 'selected' : '' ?>>10</option>
-                <option value="25" <?= $perPage == 25 ? 'selected' : '' ?>>25</option>
-                <option value="50" <?= $perPage == 50 ? 'selected' : '' ?>>50</option>
-                <option value="100" <?= $perPage == 100 ? 'selected' : '' ?>>100</option>
-            </select>
+        <select id="result-select" class="form-select form-select-sm w-auto dark:bg-neutral-600 rounded-lg">
+            <option value="">All results</option>
+            <?php foreach (CancelPlanManager::RESULTS as $k => $label): ?>
+                <option value="<?= $h($k) ?>" <?= $resultFilter === $k ? 'selected' : '' ?>><?= $h($label) ?></option>
+            <?php endforeach; ?>
+            <option value="open" <?= $resultFilter === 'open' ? 'selected' : '' ?>>Not finished</option>
+        </select>
 
-            <form class="navbar-search" onsubmit="return false;">
-                <input type="text" id="search-input"
-                    class="bg-white dark:bg-neutral-700 h-10"
-                    placeholder="Search"
-                    value="<?= htmlspecialchars($searchQuery) ?>">
-                <iconify-icon icon="ion:search-outline" class="icon"></iconify-icon>
-            </form>
-        </div>
+        <form class="navbar-search" onsubmit="return false;">
+            <input type="text" id="search-input" class="bg-white dark:bg-neutral-700 h-10"
+                placeholder="Search store, email, reason" value="<?= $h($searchQuery) ?>">
+            <iconify-icon icon="ion:search-outline" class="icon"></iconify-icon>
+        </form>
     </div>
 
     <div class="card-body p-6">
-
-        <div class="reviews-container overflow-x-auto">
-
+        <div class="cp-table overflow-x-auto">
             <table class="table bordered-table sm-table text-sm">
                 <thead>
                     <tr>
                         <th>S.No</th>
-                        <th>Store Name</th>
-                        <th>Store URL</th>
-                        <th>Email</th>
-                        <th>Rating</th>
-                        <th>Comment</th>
-                        <th>Date</th>
-                        <th>Actions</th>
+                        <th>Store</th>
+                        <th>Result</th>
+                        <th>Why they installed</th>
+                        <th>Why they are leaving</th>
+                        <th>Offer shown</th>
+                        <th>Plan today</th>
+                        <th>Last update</th>
+                        <th>Details</th>
                     </tr>
                 </thead>
-
                 <tbody>
-                    <?php if (empty($reviews)): ?>
-                        <tr>
-                            <td colspan="8" class="text-center py-6 text-neutral-500">No reviews found.</td>
-                        </tr>
-                    <?php else: ?>
-                        <?php foreach ($reviews as $index => $r): ?>
-                            <tr>
-                                <td><?= (($currentPage - 1) * $perPage) + $index + 1 ?></td>
-
-                                <td><?= htmlspecialchars($r['store_name'] ?? 'N/A') ?></td>
-
-                                <td>
-                                    <?php if (!empty($r['site_url'])): ?>
-                                        <a href="<?= htmlspecialchars($r['site_url']) ?>" target="_blank" class="text-blue-600 underline">
-                                            <?= htmlspecialchars($r['site_url']) ?>
-                                        </a>
-                                    <?php else: ?> N/A <?php endif; ?>
-                                </td>
-
-                                <td><?= htmlspecialchars($r['email']) ?></td>
-
-                                <td class="font-semibold text-yellow-600"><?= $r['rating'] ?>/10</td>
-
-                                <td><?= htmlspecialchars($r['comment']) ?></td>
-
-                                <td><?= date("Y-m-d H:i", strtotime($r['created_at'])) ?></td>
-
-                                <td class="flex gap-2">
-
-                                    <!-- <button class="bg-cstm-primary-10 hover:bg-cstm-primary-20 drk-bg-cstm-primary-20 text-cstm-primary drk-text-cstm-primary w-10 h-10 flex justify-center items-center rounded-full"
-                                        data-review='<?= json_encode($r, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>'
-                                        onclick='showReviewModal(JSON.parse(this.dataset.review))'>
-                                        <i class="fa-solid fa-eye text-lg"></i>
-                                    </button> -->
-
-                                    <button class="bg-danger-100 hover:bg-danger-600/25 text-danger-600 dark:bg-danger-600/20 dark:hover:bg-danger-600/25 w-10 h-10 flex justify-center items-center rounded-full"
-                                        onclick="deleteReview(<?= $r['id'] ?>)">
-                                        <i class="fa-solid fa-trash text-lg"></i>
-                                    </button>
-
-                                </td>
-
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                <?php if (empty($rows)): ?>
+                    <tr><td colspan="9" class="text-center py-6 text-neutral-500">No cancellation feedback yet.</td></tr>
+                <?php else: foreach ($rows as $i => $r):
+                    [$resLabel, $resClass]   = $resultBadge($r['final_action']);
+                    [$planLabel, $planClass] = $planToday($r);
+                    $offer = $offerLabels[$r['offer_type'] ?? ''] ?? ($r['offer_type'] ?: '—');
+                    $detail = [
+                        'store'      => $r['store_name'] ?: $r['store_id'],
+                        'store_id'   => $r['store_id'],
+                        'url'        => $r['site_url'],
+                        'email'      => $r['email'],
+                        'result'     => $resLabel,
+                        'step'       => (int)$r['current_step'],
+                        'join'       => $r['join_reason'],
+                        'join_extra' => $r['join_extra'],
+                        'leave'      => $r['leave_reason'],
+                        'leave_extra'=> $r['leave_extra'],
+                        'offer'      => $offer,
+                        'offer_sel'  => $r['offer_selected'],
+                        'plan'       => trim(($r['plan_name'] ?? '') . ' ' . ($r['billing_period'] ? '(' . $r['billing_period'] . ')' : '')),
+                        'plan_today' => $planLabel,
+                        'started'    => $r['created_at'],
+                        'updated'    => $r['updated_at'],
+                    ];
+                ?>
+                    <tr>
+                        <td><?= (($currentPage - 1) * $perPage) + $i + 1 ?></td>
+                        <td style="min-width:180px;max-width:260px">
+                            <div class="font-semibold dark:text-white" style="word-break:break-all"><?= $h($r['store_name'] ?: $r['store_id']) ?></div>
+                            <?php if (!empty($r['site_url'])):
+                                $url = preg_match('~^https?://~i', $r['site_url']) ? $r['site_url'] : 'https://' . $r['site_url']; ?>
+                                <a href="<?= $h($url) ?>" target="_blank" rel="noopener" class="text-primary-600 text-xs break-all"><?= $h($r['site_url']) ?></a>
+                            <?php endif; ?>
+                            <div class="text-xs text-neutral-500" style="word-break:break-all"><?= $h($r['email'] ?: '—') ?></div>
+                        </td>
+                        <td><span class="px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap <?= $resClass ?>"><?= $h($resLabel) ?></span>
+                            <?php if (!$r['final_action']): ?><div class="text-xs text-neutral-500 mt-1">Stopped at step <?= (int)$r['current_step'] ?> of 4</div><?php endif; ?>
+                        </td>
+                        <td class="min-w-[160px]"><?= $h($r['join_reason'] ?: '—') ?></td>
+                        <td class="min-w-[180px]">
+                            <?= $h($r['leave_reason'] ?: '—') ?>
+                            <?php if (!empty($r['leave_extra'])): ?>
+                                <div class="text-xs text-neutral-500 italic mt-1">“<?= $h(mb_strimwidth((string)$r['leave_extra'], 0, 80, '…')) ?>”</div>
+                            <?php endif; ?>
+                        </td>
+                        <td><?= $h($offer) ?></td>
+                        <td>
+                            <span class="px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap <?= $planClass ?>"><?= $h($planLabel) ?></span>
+                            <?php if (!empty($r['plan_name'])): ?><div class="text-xs text-neutral-500 mt-1"><?= $h($r['plan_name']) ?></div><?php endif; ?>
+                        </td>
+                        <td class="whitespace-nowrap"><?= $h(date('j M Y, H:i', strtotime((string)$r['updated_at']))) ?></td>
+                        <td>
+                            <button type="button" title="View details"
+                                class="bg-cstm-primary-10 hover:bg-cstm-primary-20 text-cstm-primary w-10 h-10 flex justify-center items-center rounded-full"
+                                data-detail='<?= json_encode($detail, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>'
+                                onclick="showCancelDetails(JSON.parse(this.dataset.detail))">
+                                <i class="fa-solid fa-eye text-lg"></i>
+                            </button>
+                        </td>
+                    </tr>
+                <?php endforeach; endif; ?>
                 </tbody>
-
             </table>
-
         </div>
 
-        <div class="flex items-center justify-between mt-6">
-
-            <span>Showing <?= (($currentPage - 1) * $perPage) + 1 ?>
-                to <?= min($currentPage * $perPage, $totalRows) ?>
-                of <?= $totalRows ?> entries
-            </span>
-
+        <div class="cp-pager flex flex-wrap items-center justify-between gap-3 mt-6">
+            <span>Showing <?= $totalRows ? (($currentPage - 1) * $perPage) + 1 : 0 ?>
+                to <?= min($currentPage * $perPage, $totalRows) ?> of <?= $totalRows ?> entries</span>
             <ul class="pagination flex gap-2">
-
                 <li class="<?= ($currentPage <= 1) ? 'opacity-50 pointer-events-none' : '' ?>">
-                    <a data-page="<?= $currentPage - 1 ?>"
-                        class="page-link bg-neutral-100 dark:bg-neutral-600 h-8 w-8 flex justify-center items-center rounded-lg text-sm"
-                        href="#">
-                        <iconify-icon icon="ep:d-arrow-left"></iconify-icon>
-                    </a>
+                    <a data-page="<?= $currentPage - 1 ?>" class="page-link bg-neutral-100 dark:bg-neutral-600 h-8 w-8 flex justify-center items-center rounded-lg text-sm" href="#">
+                        <iconify-icon icon="ep:d-arrow-left"></iconify-icon></a>
                 </li>
-
-                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                    <li>
-                        <a data-page="<?= $i ?>"
-                            class="page-link h-8 w-8 flex justify-center items-center rounded-lg text-sm
-                            <?= ($i == $currentPage) ? 'bg-cstm-primary text-white' : 'bg-neutral-100 dark:bg-neutral-600' ?>"
-                            href="#">
-                            <?= $i ?>
-                        </a>
-                    </li>
+                <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+                    <li><a data-page="<?= $p ?>" href="#" class="page-link h-8 w-8 flex justify-center items-center rounded-lg text-sm <?= ($p === $currentPage) ? 'bg-cstm-primary text-white' : 'bg-neutral-100 dark:bg-neutral-600' ?>"><?= $p ?></a></li>
                 <?php endfor; ?>
-
                 <li class="<?= ($currentPage >= $totalPages) ? 'opacity-50 pointer-events-none' : '' ?>">
-                    <a data-page="<?= $currentPage + 1 ?>"
-                        class="page-link bg-neutral-100 dark:bg-neutral-600 h-8 w-8 flex justify-center items-center rounded-lg text-sm"
-                        href="#">
-                        <iconify-icon icon="ep:d-arrow-right"></iconify-icon>
-                    </a>
+                    <a data-page="<?= $currentPage + 1 ?>" class="page-link bg-neutral-100 dark:bg-neutral-600 h-8 w-8 flex justify-center items-center rounded-lg text-sm" href="#">
+                        <iconify-icon icon="ep:d-arrow-right"></iconify-icon></a>
                 </li>
-
             </ul>
         </div>
-
     </div>
 </div>
 
-<div id="globalModal"
-    class="fixed inset-0 bg-cstm-black-50 hidden items-center justify-center z-50 backdrop-blur-sm">
-
-    <div class="bg-white dark:bg-neutral-800 rounded-xl shadow-lg max-w-2xl w-full p-6 relative">
-
-        <button id="modalCloseBtn"
-            class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-xl">
-            &times;
-        </button>
-
-        <div id="modalContent"></div>
-
-        <div class="mt-6 text-right flex justify-end gap-3">
-            <button id="modalCancelBtn"
-                class="btn btn-cstm-muted hidden">
-                Cancel
-            </button>
-
-            <button id="modalConfirmBtn"
-                class="btn btn-cstm-primary hidden">
-                Confirm
-            </button>
-        </div>
+<div id="cpModal" class="fixed inset-0 bg-cstm-black-50 hidden items-center justify-center z-50 backdrop-blur-sm p-4">
+    <div class="bg-white dark:bg-neutral-800 rounded-xl shadow-lg max-w-2xl w-full p-6 relative max-h-[90vh] overflow-y-auto">
+        <button type="button" onclick="closeCpModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-xl" aria-label="Close">&times;</button>
+        <div id="cpModalContent"></div>
     </div>
 </div>
 
 <script>
-    const modal = document.getElementById("globalModal");
-    const modalContent = document.getElementById("modalContent");
-    const modalClose = document.getElementById("modalCloseBtn");
-    const modalCancel = document.getElementById("modalCancelBtn");
-    const modalConfirm = document.getElementById("modalConfirmBtn");
-
-    function openModal(html, {
-        showConfirm = false,
-        confirmText = "Confirm",
-        onConfirm = null
-    } = {}) {
-        modalContent.innerHTML = html;
-
-        // 1. Handle Visibility
-        if (showConfirm) {
-            modalCancel.classList.remove("hidden");
-            modalConfirm.classList.remove("hidden");
-        } else {
-            modalCancel.classList.add("hidden");
-            modalConfirm.classList.add("hidden");
-        }
-
-        // 2. Update Button Text
-        modalConfirm.textContent = confirmText;
-
-        // Reset classes first
-        modalConfirm.className = "btn";
-
-        // Apply style based on action
-        if (confirmText.toLowerCase() === "delete") {
-            modalConfirm.classList.add("btn-cstm-danger");
-        } else {
-            modalConfirm.classList.add("btn-cstm-primary");
-        }
-
-
-        // 3. Handle Click Event (FIX: Just overwrite .onclick instead of replaceChild)
-        modalConfirm.onclick = null; // Clear old handlers
-
-        if (showConfirm && onConfirm) {
-            modalConfirm.onclick = () => {
-                onConfirm();
-                closeModal();
-            };
-        }
-
-        modal.classList.remove("hidden");
-        modal.classList.add("flex");
+    function cpEsc(v) { var d = document.createElement('div'); d.textContent = (v === null || v === undefined || v === '') ? '—' : String(v); return d.innerHTML; }
+    function showCancelDetails(d) {
+        var field = function (label, value) {
+            return '<div class="pb-2 border-b border-gray-100 dark:border-gray-600"><p class="font-medium text-gray-500 dark:text-gray-400">' + label + '</p>'
+                 + '<p class="text-gray-800 dark:text-gray-200" style="word-break:break-all">' + cpEsc(value) + '</p></div>';
+        };
+        var block = function (label, value, extra) {
+            return '<div class="col-span-full"><p class="font-medium text-gray-500 dark:text-gray-400 mb-1">' + label + '</p>'
+                 + '<div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-800 dark:text-gray-200">' + cpEsc(value)
+                 + (extra ? '<div class="mt-2 italic text-gray-600 dark:text-gray-300">“' + cpEsc(extra) + '”</div>' : '') + '</div></div>';
+        };
+        document.getElementById('cpModalContent').innerHTML =
+            '<h2 class="text-xl font-bold mb-5 text-gray-900 dark:text-white">Cancellation details</h2>'
+          + '<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm">'
+          + field('Store', d.store) + field('Store ID', d.store_id)
+          + field('Store URL', d.url) + field('Email', d.email)
+          + field('Result', d.result) + field('Reached step', d.step + ' of 4')
+          + field('Plan', d.plan) + field('Plan today', d.plan_today)
+          + block('Why they installed', d.join, d.join_extra)
+          + block('Why they are leaving', d.leave, d.leave_extra)
+          + field('Offer shown', d.offer) + field('Offer clicked', d.offer_sel)
+          + field('Started', d.started) + field('Last update', d.updated)
+          + '</div>';
+        var m = document.getElementById('cpModal'); m.classList.remove('hidden'); m.classList.add('flex');
     }
-
-    function closeModal() {
-        modal.classList.add("hidden");
-        modal.classList.remove("flex");
-    }
-
-    modalClose.onclick = closeModal;
-    modalCancel.onclick = closeModal;
-
-    // Close on click outside
-    window.onclick = function(event) {
-        if (event.target == modal) {
-            closeModal();
-        }
-    }
-</script>
-
-<script>
-    function showReviewModal(data) {
-
-        let ratingColor = data.rating >= 8 ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400';
-        let html = `
-                <h2 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white flex items-center">
-                    <i class="fa-regular fa-file-lines h-6 w-6 mr-2"></i>
-                    Review Details
-                </h2>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
-                    
-                    <div class="space-y-3">
-                        <div class="pb-2 border-b border-gray-100 dark:border-gray-600">
-                            <p class="font-medium text-gray-500 dark:text-gray-400">Store Name</p>
-                            <p class="text-gray-800 dark:text-gray-200">${data.store_name ?? 'N/A'}</p>
-                        </div>
-                        <div class="pb-2 border-b border-gray-100 dark:border-gray-600">
-                            <p class="font-medium text-gray-500 dark:text-gray-400">Store URL</p>
-                            ${data.site_url ? `<a href="${data.site_url}" target="_blank" class="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition truncate block">${data.site_url}</a>` : '<p class="text-gray-800 dark:text-gray-200">N/A</p>'}
-                        </div>
-                    </div>
-
-                    <div class="space-y-3">
-                        <div class="pb-2 border-b border-gray-100 dark:border-gray-600">
-                            <p class="font-medium text-gray-500 dark:text-gray-400">Email</p>
-                            <p class="text-gray-800 dark:text-gray-200">${data.email}</p>
-                        </div>
-                        <div class="pb-2 border-b border-gray-100 dark:border-gray-600">
-                            <p class="font-medium text-gray-500 dark:text-gray-400">Date Submitted</p>
-                            <p class="text-gray-800 dark:text-gray-200">${data.created_at}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="col-span-full pt-4 md:pt-0">
-                        <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg shadow-inner">
-                            <p class="text-lg font-semibold text-gray-900 dark:text-white">Rating</p>
-                            <p class="text-2xl font-extrabold ${ratingColor}">${data.rating}<span class="text-base font-normal">/10</span></p>
-                        </div>
-                    </div>
-
-                    <div class="col-span-full pt-4 border-t border-gray-200 dark:border-gray-600">
-                        <p class="font-medium text-gray-500 dark:text-gray-400 mb-2">Comment</p>
-                        <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-800 dark:text-gray-200 italic">
-                            ${data.comment || 'No comment provided.'}
-                        </div>
-                    </div>
-                </div>
-        `;
-        openModal(html, {
-            showConfirm: false
-        });
-    }
-
-    function deleteReview(id) {
-        let html = `
-                <h2 class="text-xl font-bold mb-4 text-danger-600 dark:text-danger-600">Delete Review</h2>
-                <p class="text-sm text-neutral-600 dark:text-neutral-300">
-                    Are you sure you want to delete this review permanently?
-                </p>
-            `;
-
-        openModal(html, {
-            showConfirm: true,
-            confirmText: "Delete",
-            onConfirm: () => {
-                $.post("api/delete-review.php", {
-                    id
-                }, function(res) {
-                    if (res.success) {
-                        location.reload();
-                    } else {
-                        openModal(`<p class="text-red-600 font-medium">${res.message}</p>`);
-                    }
-                }, "json").fail(function(err) {
-                    console.error("Delete API Error:", err);
-                });
-
-            }
-        });
-    }
+    function closeCpModal() { var m = document.getElementById('cpModal'); m.classList.add('hidden'); m.classList.remove('flex'); }
+    document.getElementById('cpModal').addEventListener('click', function (e) { if (e.target === this) closeCpModal(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeCpModal(); });
 </script>
 
 <?php include './partials/layouts/layoutBottom.php'; ?>

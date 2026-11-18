@@ -110,6 +110,39 @@ function plan_guard_get_db(): mysqli {
     return $mysqli;
 }
 
+if (!function_exists('gscStripePaidStatus')) {
+    /**
+     * Paid-window state of a Stripe app_subscriptions row:
+     * 'active' | 'cancelled' | 'expired'.
+     *
+     *  - active / trialing / past_due: paid access until expires_on (the
+     *    invoice period end) plus a 1-day grace, because Stripe's renewal
+     *    invoice.payment_succeeded arrives ~1 hour AFTER the period ends.
+     *  - cancelled: access until expires_on (customer.subscription.deleted
+     *    sets it to the moment the subscription really ended; a
+     *    "cancel at period end" keeps the paid period).
+     *  - cancelled_at is informational only and never locks by itself
+     *    (a re-subscribe after a cancel must unlock).
+     */
+    function gscStripePaidStatus(array $paid, ?DateTimeImmutable $now = null): string
+    {
+        $now    = $now ?? new DateTimeImmutable('now');
+        $status = strtolower(trim((string)($paid['status'] ?? '')));
+        try {
+            $exp = !empty($paid['expires_on']) ? new DateTimeImmutable((string)$paid['expires_on']) : null;
+        } catch (Throwable $e) {
+            $exp = null;
+        }
+        if (in_array($status, ['active', 'trialing', 'past_due'], true)) {
+            return ($exp === null || $exp->modify('+1 day') > $now) ? 'active' : 'expired';
+        }
+        if (in_array($status, ['cancelled', 'canceled'], true)) {
+            return ($exp !== null && $exp > $now) ? 'active' : 'cancelled';
+        }
+        return 'expired';
+    }
+}
+
 /**
  * Check whether the instance's plan allows the schema feature.
  *
@@ -159,13 +192,7 @@ LIMIT 1
                 $pExpires   = !empty($paid['expires_on']) ? new DateTimeImmutable($paid['expires_on']) : null;
                 $pCancelled = !empty($paid['cancelled_at']) ? new DateTimeImmutable($paid['cancelled_at']) : null;
 
-                if ($pCancelled !== null) {
-                    $paidStatus = 'cancelled';
-                } elseif ($pExpires !== null && $pExpires <= $now) {
-                    $paidStatus = 'expired';
-                } else {
-                    $paidStatus = 'active';
-                }
+                $paidStatus = gscStripePaidStatus($paid, $now);
 
                 // If cancelled, treat as free plan (not allowed)
                 if ($paidStatus === 'cancelled') {
@@ -178,7 +205,7 @@ LIMIT 1
                 $dbStatus = isset($paid['status']) ? mb_strtolower(trim($paid['status'])) : '';
 
                 // If active subscription and DB status active, decide allowance
-                if ($paidStatus === 'active' && $dbStatus === 'active') {
+                if ($paidStatus === 'active') {
                     // Check if it's Grow plan first - always allow Grow plan
                     $isGrowPlan = strpos($dbPlanName, 'grow') !== false;
                     
@@ -268,13 +295,7 @@ LIMIT 1
         $pCancelled = !empty($paid['cancelled_at']) ? new DateTimeImmutable($paid['cancelled_at']) : null;
         $pExpires = !empty($paid['expires_on']) ? new DateTimeImmutable($paid['expires_on']) : null;
 
-        if ($pCancelled !== null) {
-            $paidStatus = 'cancelled';
-        } elseif ($pExpires !== null && $pExpires <= $now) {
-            $paidStatus = 'expired';
-        } else {
-            $paidStatus = 'active';
-        }
+        $paidStatus = gscStripePaidStatus($paid, $now);
 
         // If cancelled, treat as free plan (not allowed)
         if ($paidStatus === 'cancelled') {
@@ -286,7 +307,7 @@ LIMIT 1
         $dbBillingPeriod = isset($paid['billing_period']) ? mb_strtolower(trim($paid['billing_period'])) : '';
         $dbStatus = isset($paid['status']) ? mb_strtolower(trim($paid['status'])) : '';
 
-        if ($paidStatus === 'active' && $dbStatus === 'active') {
+        if ($paidStatus === 'active') {
             if (strpos($dbPlanName, 'basic') !== false || $dbBillingPeriod === 'lifetime' || $dbBillingPeriod === 'one_time') {
                 // not allowed
             } else {
@@ -520,9 +541,7 @@ LIMIT 1
                 $pCancelled = !empty($paid['cancelled_at']) ? new DateTimeImmutable($paid['cancelled_at']) : null;
                 $pExpires = !empty($paid['expires_on']) ? new DateTimeImmutable($paid['expires_on']) : null;
 
-                if ($pCancelled !== null) $paidStatus = 'cancelled';
-                elseif ($pExpires !== null && $pExpires <= $now) $paidStatus = 'expired';
-                else $paidStatus = 'active';
+                $paidStatus = gscStripePaidStatus($paid, $now);
 
                 // If cancelled, treat as free plan (not allowed)
                 if ($paidStatus === 'cancelled') {
@@ -539,7 +558,7 @@ LIMIT 1
                     $dbBillingPeriod = isset($paid['billing_period']) ? mb_strtolower(trim($paid['billing_period'])) : '';
                     $dbStatus = isset($paid['status']) ? mb_strtolower(trim($paid['status'])) : '';
 
-                    if ($paidStatus === 'active' && $dbStatus === 'active') {
+                    if ($paidStatus === 'active') {
                     // Check if it's Grow plan first - always allow Grow plan
                     $isGrowPlan = strpos($dbPlanName, 'grow') !== false;
                     
@@ -635,9 +654,7 @@ LIMIT 1
             $pCancelled = !empty($paid['cancelled_at']) ? new DateTimeImmutable($paid['cancelled_at']) : null;
             $pExpires = !empty($paid['expires_on']) ? new DateTimeImmutable($paid['expires_on']) : null;
 
-            if ($pCancelled !== null) $paidStatus = 'cancelled';
-            elseif ($pExpires !== null && $pExpires <= $now) $paidStatus = 'expired';
-            else $paidStatus = 'active';
+            $paidStatus = gscStripePaidStatus($paid, $now);
 
             // If cancelled, treat as free plan (not allowed)
             if ($paidStatus === 'cancelled') {
@@ -653,7 +670,7 @@ LIMIT 1
                 $dbBillingPeriod = isset($paid['billing_period']) ? mb_strtolower(trim($paid['billing_period'])) : '';
                 $dbStatus = isset($paid['status']) ? mb_strtolower(trim($paid['status'])) : '';
 
-                if ($paidStatus === 'active' && $dbStatus === 'active') {
+                if ($paidStatus === 'active') {
                     // Check if it's Grow plan first - always allow Grow plan
                     $isGrowPlan = strpos($dbPlanName, 'grow') !== false;
                     

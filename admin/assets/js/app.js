@@ -52,24 +52,54 @@ if(sidebarColseBtn){
 }
 
 //to keep the current page active
+// Matches by page FILE, not the full URL, so ?show=..&page=..&search=.. does
+// not drop the highlight. Pages reached through another page are mapped to
+// the menu item the admin clicked.
 document.addEventListener("DOMContentLoaded", function () {
-  var nk = window.location.href;
-  var links = document.querySelectorAll("ul#sidebar-menu a");
+  var links = Array.prototype.slice.call(document.querySelectorAll("ul#sidebar-menu a[href]"));
+  var fileOf = function (url) {
+    var path = new URL(url, window.location.href).pathname;
+    return (path.split("/").pop() || "index.php").toLowerCase();
+  };
+  var file = fileOf(window.location.href);
+  var search = (new URLSearchParams(window.location.search).get("search") || "").toLowerCase();
+
+  // Active / Inactive Stores redirect to stores.php?search=active|inactive
+  if (file === "stores.php" && search === "active") file = "stores-active.php";
+  else if (file === "stores.php" && search === "inactive") file = "stores-inactive.php";
+
+  var parentOf = {
+    "store-view.php": "stores.php",
+    "store-emails.php": "stores.php",
+    "active-stores.php": "stores-active.php",
+    "stores-old.php": "stores.php",
+    "storesold.php": "stores.php",
+    "email-template-add.php": "email-templates.php",
+    "email-template-edit.php": "email-templates.php",
+    "mail-logs.php": "email-templates.php",
+    "view-mail.php": "email-templates.php",
+    "ticket-view.php": "tickets.php",
+    "ticket-detail.php": "tickets.php",
+    "app-add.php": "our-apps.php",
+    "app-edit.php": "our-apps.php",
+    "index_old.php": "index.php"
+  };
+  var has = function (f) { return links.some(function (l) { return fileOf(l.href) === f; }); };
+  if (!has(file) && parentOf[file]) file = parentOf[file];
 
   links.forEach(function (link) {
-    if (link.href === nk) {
-      link.classList.add("active-page"); // anchor
-      var parent = link.parentElement;
-      parent.classList.add("active-page"); // li
+    if (fileOf(link.href) !== file) return;
+    link.classList.add("active-page"); // anchor
+    var parent = link.parentElement;
+    parent.classList.add("active-page"); // li
 
-      // Traverse up the DOM tree and add classes to parent elements
-      while (parent && parent.tagName !== "BODY") {
-        if (parent.tagName === "LI") {
-          parent.classList.add("show");
-          parent.classList.add("open");
-        }
-        parent = parent.parentElement;
+    // Traverse up the DOM tree and add classes to parent elements
+    while (parent && parent.tagName !== "BODY") {
+      if (parent.tagName === "LI") {
+        parent.classList.add("show");
+        parent.classList.add("open");
       }
+      parent = parent.parentElement;
     }
   });
 });

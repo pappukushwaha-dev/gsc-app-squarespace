@@ -290,6 +290,21 @@ if ($isFree) {
  * 10. PAID PLAN (Stripe Checkout)
  * --------------------------------------------------
  */
+/* Still inside a period that is already paid (cancelled now or at period
+   end, not refunded)? Then no second purchase: "Keep my plan" on the My
+   Plan page turns auto-renewal back on instead (api/subscription-cancel.php,
+   action=resume), billing again only when the paid period ends. */
+require_once __DIR__ . '/../includes/gsc_cancel.php';
+if (gscCancelPaidUntil($pdo, (string)$shopId)) {
+    $gscKeepUrl = 'current-plan.php?keep_plan=1&shop_id=' . rawurlencode((string)$shopId);
+    if (stripos((string)($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json') !== false) {
+        echo json_encode(['redirect' => $gscKeepUrl]);
+    } else {
+        header('Location: ../' . $gscKeepUrl);
+    }
+    exit;
+}
+
 try {
     $session = \Stripe\Checkout\Session::create([
         'mode' => 'subscription',

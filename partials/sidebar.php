@@ -62,7 +62,7 @@ function gsc_plan_state(PDO $pdo, string $shopId): array
     $sub = null;
     try {
         $q = $pdo->prepare("
-            SELECT plan_name, billing_period, started_at, expires_on, cancelled_at
+            SELECT plan_name, billing_period, status, started_at, expires_on, cancelled_at
             FROM app_subscriptions
             WHERE shop_id = ?
             ORDER BY started_at DESC, id DESC
@@ -136,11 +136,21 @@ function gsc_plan_state(PDO $pdo, string $shopId): array
            from cancelled_at and expires_on, and the sidebar must agree with
            the billing endpoint or the two will tell the merchant different
            stories. */
-        if ($subCancel && $subCancel <= $now) {
+        /* 1-day grace after expires_on for a live subscription, same as
+           includes/plan_guard.php gscStripePaidStatus(): at renewal Stripe
+           charges up to ~1h after the period ends, and a failed card
+           (past_due) is retried - the dashboard stays unlocked meanwhile,
+           so the sidebar must not say "ended" either. */
+        // A row the webhook marked cancelled/expired without a
+        // cancelled_at (older rows) is over too - no renewal grace for it.
+        $subLive = in_array(strtolower((string)($sub['status'] ?? 'active')), ['active', 'trialing', 'past_due'], true);
+        if (!$subCancel && !$subLive) {
+            $state['status'] = 'cancelled';
+        } elseif ($subCancel && $subCancel <= $now) {
             $state['status'] = 'cancelled';
         } elseif ($subCancel && $subCancel > $now) {
             $state['status'] = 'cancel_scheduled';
-        } elseif ($subExpiry && $subExpiry <= $now) {
+        } elseif ($subExpiry && $subExpiry->modify('+1 day') <= $now) {
             $state['status'] = 'expired';
         } else {
             $state['status'] = 'active';
@@ -158,7 +168,7 @@ function gsc_plan_state(PDO $pdo, string $shopId): array
 
         $state['block'] = 'paid';
         $state['still_has_access'] = true;
-        gsc_plan_fill_dates($state, $subExpiry);
+        gsc_plan_fill_dates($state, ($subExpiry && $subExpiry < $now) ? $now : $subExpiry);
         return $state;
     }
 
@@ -739,7 +749,7 @@ $faviconPath = $adminData['favicon_path'] ?? 'assets/images/logo-icon.png';
           </li>
         </ul>
 
-        <a id="card-plan-cta-ending" href="pricing.php?shop_id=<?= urlencode($shopIdForApi) ?>" target="_top"
+        <a id="card-plan-cta-ending" <?php $gcfKeepPlan = !empty($planState['still_has_access']); ?>href="<?= $gcfKeepPlan ? 'current-plan.php?keep_plan=1&amp;' : 'pricing.php?' ?>shop_id=<?= urlencode($shopIdForApi) ?>"<?= $gcfKeepPlan ? '' : ' target="_top"' ?>
           class="block w-full text-center py-2.5 rounded-lg text-xs font-medium text-white transition shadow-sm"
           style="background:#d97706;">
           <?= $planState['still_has_access'] ? 'Keep my plan' : 'Reactivate plan' ?>
@@ -765,12 +775,18 @@ $faviconPath = $adminData['favicon_path'] ?? 'assets/images/logo-icon.png';
           <span>Contact Support</span>
         </button>
       </li> -->
-      <!-- <li class="review-btn-block w-full">
+      <?php
+        require_once __DIR__ . '/../includes/gsc_cancel.php';
+        $gcfSidebarSub = gscCancelFindSub($pdo, (string)($shopIdForApi ?? ''));
+      ?>
+      <?php if (($gcfSidebarSub['state'] ?? '') === 'active'): ?>
+      <li class="review-btn-block w-full">
         <a href="javascript:void(0)" onclick="CancellationFlow.open()" class="btn btn-cstm-primary light justify-center gap-1 items-center w-full px-3">
           <iconify-icon icon="mdi:close-circle-outline" class="menu-icon text-xl"></iconify-icon>
           <span>Cancel Subscription</span>
         </a>
-      </li> -->
+      </li>
+      <?php endif; ?>
     </ul>
   </div>
 </aside>

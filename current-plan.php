@@ -181,9 +181,9 @@ include './partials/layouts/layoutTop.php';
 
           <div class="mt-4 text-secondary-light">
             <?php if ($currentType === 'paid'): ?>
-              <div class="text-sm"><strong>Status:</strong> <?php echo h(strtoupper((string)$status ?: 'active')); ?></div>
+              <div class="text-sm"><strong>Status:</strong> <?php echo h($status === 'cancel_scheduled' ? 'ACTIVE (auto-renewal cancelled)' : strtoupper((string)$status ?: 'active')); ?></div>
               <?php if (!empty($expiresOn) && strtolower((string)$billingPeriod) !== 'limited'): ?>
-                <div class="text-sm mt-1"><strong>Next renewal / expires:</strong> <?php echo h(date('Y-m-d', strtotime($expiresOn))); ?></div>
+                <div class="text-sm mt-1"><strong><?php echo $status === 'cancel_scheduled' ? 'Access until:' : 'Next renewal / expires:'; ?></strong> <?php echo h(date('Y-m-d', strtotime($expiresOn))); ?></div>
               <?php endif; ?>
             <?php elseif ($currentType === 'free'): ?>
               <div class="text-sm"><strong>Status:</strong> On trial</div>
@@ -199,11 +199,23 @@ include './partials/layouts/layoutTop.php';
             <?php if ($currentType === 'paid'): ?>
               <button id="change-plan" class="w-full inline-block px-3 py-2.5 rounded-lg border border-primary-600 <?php echo 'text-primary-600'; ?> text-sm">Change plan</button>
 
-              <form method="post" action="api/billing.php" onsubmit="return confirm('Cancel subscription?');" class="mt-3">
-                <input type="hidden" name="shop_id" value="<?php echo h($shopId ?? ''); ?>">
-                <input type="hidden" name="action" value="cancel">
-                <button type="submit" class="w-full inline-block px-3 py-2.5 rounded-lg bg-white text-red-600 border border-red-600 text-sm">Cancel subscription</button>
-              </form>
+              <?php if (($_GET['plan_kept'] ?? '') === '1'): ?>
+                <div class="mt-3 rounded-lg px-3 py-2 text-sm bg-success-100 text-success-700">Done - your plan is active again and auto-renewal is back on.</div>
+              <?php endif; ?>
+              <?php
+                require_once __DIR__ . '/includes/gsc_cancel.php';
+                $cpCancelSub = isset($pdo) ? gscCancelFindSub($pdo, (string)($shopId ?? '')) : null;
+              ?>
+              <?php if (($cpCancelSub['state'] ?? '') === 'active'): ?>
+                <button type="button" onclick="CancellationFlow.open()" class="mt-3 w-full inline-block px-3 py-2.5 rounded-lg bg-white text-red-600 border border-red-600 text-sm">Cancel subscription</button>
+              <?php elseif (($cpCancelSub['state'] ?? '') === 'cancel_scheduled'): ?>
+                <p class="mt-3 text-sm text-neutral-600 dark:text-neutral-300">Auto-renewal is off (cancelled at period end). You keep this plan until <?php echo h((string)$cpCancelSub['access_until']); ?>.</p>
+                <button type="button" id="gcf-keep-plan-btn" onclick="CancellationFlow.resume(this)" class="mt-2 w-full inline-block px-3 py-2.5 rounded-lg bg-primary-600 text-white text-sm">Keep my plan</button>
+              <?php elseif ($cpCancelSub && !empty($cpCancelSub['expires_on']) && strtotime((string)$cpCancelSub['expires_on']) > time()): ?>
+                <p class="mt-3 text-sm text-neutral-600 dark:text-neutral-300">Your subscription was cancelled. You keep this plan until <?php echo h((string)$cpCancelSub['access_until']); ?>.</p>
+                <button type="button" id="gcf-keep-plan-btn" onclick="CancellationFlow.resume(this)" class="mt-2 w-full inline-block px-3 py-2.5 rounded-lg bg-primary-600 text-white text-sm">Keep my plan</button>
+                <p class="mt-1 text-xs text-neutral-500">Turns auto-renewal back on. Nothing is charged until <?php echo h((string)$cpCancelSub['access_until']); ?>.</p>
+              <?php endif; ?>
 
             <?php elseif ($currentType === 'free'): ?>
               <a href="pricing.php" class="w-full inline-block px-3 py-2.5 rounded-lg bg-primary-600 text-white text-center text-sm">Upgrade to paid</a>
@@ -245,7 +257,7 @@ include './partials/layouts/layoutTop.php';
                 <h6 class="mb-2 text-sm font-medium">Quick info (staff)</h6>
                 <ul class="list-disc ml-4 space-y-1">
                   <li>Change plan → opens Pricing (choose a plan and confirm)</li>
-                  <li>Cancel → backend handles grace/refund rules</li>
+                  <li>Cancel → plan stays active until the end of the paid period, no further charges</li>
                   <li>Activate trial → backend decides eligibility</li>
                 </ul>
               </div>
@@ -281,4 +293,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+<script>
+  // Arrived from the sidebar's "Keep my plan": ask to confirm, then turn auto-renewal back on.
+  document.addEventListener('DOMContentLoaded', function () {
+    if (new URLSearchParams(location.search).get('keep_plan') !== '1') return;
+    var btn = document.getElementById('gcf-keep-plan-btn');
+    if (btn && window.CancellationFlow) CancellationFlow.resume(btn);
+  });
+</script>
 <?php include './partials/layouts/layoutBottom.php'; ?>

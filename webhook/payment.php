@@ -62,7 +62,6 @@ $sigHeader =
     ?? '';
 
 logWebhook($pdo, 'RAW 01', $payload);
-logWebhook($pdo, 'RAW 05', $_SERVER);
 logWebhook($pdo, 'HEADERS', $headers);
 
 // verify signature
@@ -75,6 +74,33 @@ try {
      logToFile('SIGNATURE FAILED', $e->getMessage());
     logToFile('FAILED PAYLOAD', $payload);
     http_response_code(400);
+    exit;
+}
+
+// Only this app's events. All GSC apps share ONE Stripe account and every
+// endpoint receives every event; without this filter a purchase made on
+// another platform was written into this app's database.
+const GSC_STRIPE_PLATFORM = 'squarespace-googlesearchconsole';
+function gscStripeEventPlatform($event): ?string
+{
+    $o = $event->data->object ?? null;
+    if (!$o) {
+        return null;
+    }
+    $m = $o->metadata->platform ?? null;
+    if (!$m && isset($o->lines->data[0])) {
+        $m = $o->lines->data[0]->metadata->platform ?? null;
+    }
+    if (!$m) {
+        $m = $o->parent->subscription_details->metadata->platform ?? null;
+    }
+    return $m ? (string)$m : null;
+}
+$gscEventPlatform = gscStripeEventPlatform($event);
+if ($gscEventPlatform !== null && strcasecmp($gscEventPlatform, GSC_STRIPE_PLATFORM) !== 0) {
+    logWebhook($pdo, 'SKIPPED_OTHER_PLATFORM', ['platform' => $gscEventPlatform], $event->type);
+    http_response_code(200);
+    echo json_encode(['success' => true, 'skipped' => 'other platform']);
     exit;
 }
 
@@ -140,18 +166,44 @@ switch ($event->type) {
             (:instid,:sub,:cid,:plan,:period,:status,:price,:currency,:raw,
             FROM_UNIXTIME(:start),FROM_UNIXTIME(:end), :pm)
             ON DUPLICATE KEY UPDATE
+                /* Paid-until date. Stripe moves current_period_end forward at
+                   renewal BEFORE the card is charged (and even when the charge
+                   fails -> past_due), so for an existing subscription only
+                   invoice.payment_succeeded may extend expires_on. It is set
+                   here only for a new subscription / empty value. Must stay
+                   the FIRST assignment: it compares the stored
+                   stripe_subscription_id before it is overwritten below. */
+                expires_on = IF(expires_on IS NOT NULL
+                                AND stripe_subscription_id <=> VALUES(stripe_subscription_id),
+                                expires_on, VALUES(expires_on)),
                 status = VALUES(status),
                 stripe_subscription_id = VALUES(stripe_subscription_id),
                 customer_id = COALESCE(VALUES(customer_id), customer_id),
                 price = VALUES(price),
                 currency = VALUES(currency),
                 raw_event = VALUES(raw_event),
-                expires_on = VALUES(expires_on),
+                plan_name = VALUES(plan_name),
+                billing_period = VALUES(billing_period),
+                /* Cancel at period end: keep the paid period, record when
+                   it will end; cleared again when auto-renew is turned back
+                   on. Access is decided by expires_on, not this column. */
+                cancelled_at = :cancel_at,
                 payment_method = VALUES(payment_method),
                 updated_at = NOW()
         ");
 
+        /* Since Stripe API 2025-03 current_period_start/end live on the
+           subscription ITEM, not the subscription; reading only the old
+           fields gave NULL -> started_at NOT NULL violation -> HTTP 500 on
+           every subscription event. */
+        $periodStart = $sub->current_period_start ?? ($item->current_period_start ?? null) ?? ($sub->start_date ?? time());
+        $periodEnd   = $sub->current_period_end ?? ($item->current_period_end ?? null);
+        $cancelAt    = (!empty($sub->cancel_at_period_end) || !empty($sub->cancel_at))
+            ? date('Y-m-d H:i:s', (int)($sub->cancel_at ?? $periodEnd ?? time()))
+            : null;
+
         $stmt->execute([
+            ':cancel_at' => $cancelAt,
             ':instid'      => $shopId,
             ':sub'      => $sub->id,
             ':cid'      => $customerId,
@@ -161,8 +213,8 @@ switch ($event->type) {
             ':price'    => $item->price->unit_amount / 100,
             ':currency' => strtoupper($item->price->currency),
             ':raw'      => json_encode($event->toArray()),
-            ':start'    => $sub->current_period_start,
-            ':end'      => $sub->current_period_end,
+            ':start'    => $periodStart,
+            ':end'      => $periodEnd,
             ':pm'       => 'Stripe'
         ]);
 
@@ -177,22 +229,35 @@ switch ($event->type) {
     // subscription delete
     case 'customer.subscription.deleted':
 
-        $sub = $event->data->object;
+        /* Cancelling is not refunding. Whether cancelled immediately in
+           Stripe, at period end, or by Stripe after failed renewal
+           payments, the merchant keeps access until the end of the period
+           actually PAID for: expires_on, which only
+           invoice.payment_succeeded extends. Stripe's current_period_end is
+           deliberately NOT used - after a failed renewal it points at the
+           end of an unpaid period. If the paid period is already over,
+           access ends now. */
+        $sub         = $event->data->object;
+        $cancelledAt = !empty($sub->canceled_at)
+            ? date('Y-m-d H:i:s', (int)$sub->canceled_at)
+            : date('Y-m-d H:i:s');
 
         $stmt = $pdo->prepare("
             UPDATE app_subscriptions
             SET status = 'cancelled',
-                expires_on = NOW(),
+                cancelled_at = :cancelled_at,
+                expires_on = CASE WHEN expires_on > NOW() THEN expires_on ELSE NOW() END,
                 updated_at = NOW()
             WHERE stripe_subscription_id = :sid
         ");
-
         $stmt->execute([
-            ':sid' => $sub->id
+            ':sid'          => $sub->id,
+            ':cancelled_at' => $cancelledAt,
         ]);
 
         logWebhook($pdo, 'SUBSCRIPTION_CANCELLED', [
-            'subscription' => $sub->id
+            'subscription' => $sub->id,
+            'cancelled_at' => $cancelledAt,
         ], $event->type);
 
         break;
@@ -322,6 +387,7 @@ case 'invoice.payment_succeeded':
                     currency = VALUES(currency),
                     raw_event = VALUES(raw_event),
                     expires_on = VALUES(expires_on),
+                    cancelled_at = NULL,
                     payment_method = VALUES(payment_method),
                     updated_at = NOW()
             ");

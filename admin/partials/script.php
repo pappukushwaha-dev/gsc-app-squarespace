@@ -24,6 +24,6 @@
 
     <script src="assets/js/flowbite.min.js"></script>
     <!-- main js -->
-    <script src="assets/js/app.js"></script>
+    <script src="assets/js/app.js?v=20261118"></script>
 
     <?php echo (isset($script) ? $script   : '')?>

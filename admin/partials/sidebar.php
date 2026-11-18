@@ -34,24 +34,52 @@ $darkLogoPath = 'assets/images/logo-light.png';
                     <span>Dashboard</span>
                 </a>
             </li>
+            <li class="mt-4 mb-2 ml-4 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase">
+                <span>Stores</span>
+            </li>
+
             <li>
                 <a href="stores.php">
                     <iconify-icon icon="flowbite:users-outline" class="menu-icon"></iconify-icon>
-                    <span>Stores</span>
+                    <span>All Stores</span>
                 </a>
             </li>
+
             <li>
                 <a href="stores-active.php">
-                    <iconify-icon icon="flowbite:users-outline" class="menu-icon"></iconify-icon>
-                    <span>Active User</span>
+                    <iconify-icon icon="mdi:check-circle-outline" class="menu-icon"></iconify-icon>
+                    <span>Active Stores</span>
                 </a>
             </li>
+
             <li>
                 <a href="stores-inactive.php">
-                    <iconify-icon icon="flowbite:users-outline" class="menu-icon"></iconify-icon>
-                    <span>Inactive Users</span>
+                    <iconify-icon icon="mdi:close-circle-outline" class="menu-icon"></iconify-icon>
+                    <span>Inactive Stores</span>
                 </a>
             </li>
+
+            <li>
+                <a href="paid-stores.php">
+                    <iconify-icon icon="mdi:cash-check" class="menu-icon"></iconify-icon>
+                    <span>Paid Stores</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="unauthorized-stores.php">
+                    <iconify-icon icon="mdi:alert-circle-outline" class="menu-icon"></iconify-icon>
+                    <span>Unauthorized Stores</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="test-stores.php">
+                    <iconify-icon icon="mdi:test-tube" class="menu-icon"></iconify-icon>
+                    <span>Test Stores</span>
+                </a>
+            </li>
+
             <li>
                 <a href="faq.php">
                     <iconify-icon icon="mage:message-question-mark-round" class="menu-icon"></iconify-icon>
@@ -71,7 +99,12 @@ $darkLogoPath = 'assets/images/logo-light.png';
                 </a>
             </li>
             <li>
-            <li>
+                <a href="email-templates.php">
+                    <iconify-icon icon="tabler:mail-cog" class="menu-icon"></iconify-icon>
+                    <span>Email Templates</span>
+                </a>
+            </li>
+             <li>
                 <a href="other-app-tracking.php">
                     <iconify-icon icon="mdi:chart-line" class="menu-icon"></iconify-icon>
                     <span>App Clicks</span>
@@ -83,15 +116,9 @@ $darkLogoPath = 'assets/images/logo-light.png';
                     <span>Activity Logs</span>
                 </a>
             </li>
-                <a href="email-templates.php">
-                    <iconify-icon icon="tabler:mail-cog" class="menu-icon"></iconify-icon>
-                    <span>Email Templates</span>
-                </a>
-            </li>
-
-            <li>
+             <li>
                 <a href="tickets.php">
-                    <iconify-icon icon="solar:ticket-outline" class="menu-icon"></iconify-icon>
+                    <iconify-icon icon="mdi:ticket-outline" class="menu-icon"></iconify-icon>
                     <span>Tickets</span>
                 </a>
             </li>

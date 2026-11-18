@@ -27,7 +27,7 @@ class ReviewManager
                     r.comment, 
                     r.created_at,
                     s.site_display_name AS store_name,
-                    CONCAT('https://', s.shop_domain) AS site_url
+                    s.site_url AS site_url
                 FROM app_reviews r
                 LEFT JOIN SquarespaceSite s ON r.shop_id = s.shop_id
                 WHERE 1=1
@@ -94,7 +94,7 @@ class ReviewManager
                         r.comment LIKE :q OR
                         r.rating LIKE :q OR
                         s.site_display_name LIKE :q OR
-                        s.shop_domain LIKE :q
+                        s.site_url LIKE :q
                     )
                 ";
                 $params[':q'] = '%' . $search . '%';
@@ -125,7 +125,7 @@ class ReviewManager
                 SELECT 
                     r.*, 
                     s.site_display_name AS store_name,
-                    CONCAT('https://', s.shop_domain) AS site_url
+                    s.site_url AS site_url
                 FROM app_reviews r
                 LEFT JOIN SquarespaceSite s ON r.shop_id = s.shop_id
                 WHERE r.id = ?

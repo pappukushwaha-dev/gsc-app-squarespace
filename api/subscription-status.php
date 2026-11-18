@@ -96,9 +96,13 @@ $computeStatus = function (
     ?DateTimeImmutable $expires,
     ?DateTimeImmutable $cancelled
 ) use ($now): string {
-    if ($cancelled && $cancelled <= $now) return 'cancelled';
-    if ($cancelled && $cancelled >  $now) return 'cancel_scheduled';
-    if ($expires   && $expires   <= $now) return 'expired';
+    // Cancelling only stops auto-renewal: the paid period already bought
+    // stays usable until expires_on, so it is 'cancel_scheduled' until then.
+    if ($cancelled && $expires && $expires > $now) return 'cancel_scheduled';
+    if ($cancelled && !$expires && $cancelled > $now) return 'cancel_scheduled';
+    if ($cancelled) return 'cancelled';
+    // 1-day grace for a renewal in flight / failed card (plan_guard.php gscStripePaidStatus)
+    if ($expires   && $expires->modify('+1 day') <= $now) return 'expired';
     return 'active';
 };
 
@@ -177,6 +181,11 @@ if ($row) {
     }
 
     $computedStatus = $computeStatus($started, $expires, $cancelled);
+    // Webhook-cancelled rows without cancelled_at (older data): no renewal grace.
+    if ($computedStatus === 'active'
+        && !in_array(strtolower((string)($row['status'] ?? 'active')), ['active', 'trialing', 'past_due'], true)) {
+        $computedStatus = ($expires && $expires > $now) ? 'cancel_scheduled' : 'cancelled';
+    }
     
     // Update expires_on in database if we calculated it
     if ($shouldUpdateDatabase && $expires) {
@@ -198,8 +207,9 @@ if ($row) {
         }
     }
 
-    // If plan is cancelled (cancel_scheduled or cancelled), treat as free plan
-    if ($computedStatus === 'cancel_scheduled' || $computedStatus === 'cancelled') {
+    // Paid period over after a cancel -> free/limited. While the paid period
+    // is still running ('cancel_scheduled') the paid plan is returned below.
+    if ($computedStatus === 'cancelled') {
         // Return as free/limited plan instead of paid subscription
         jsonResponse(200, [
             'success' => true,
