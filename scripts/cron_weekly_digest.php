@@ -50,7 +50,7 @@ ini_set('display_errors', '1');
 error_reporting(E_ALL & ~E_DEPRECATED);
 ini_set('memory_limit', '512M');
 
-$ENCHARGE_WRITE_KEY = 'n4ZJTpZktcyj32fQLBW555m4N';
+$ENCHARGE_WRITE_KEY = require __DIR__ . '/../includes/encharge_key.php'; // key lives in .env (2026-11-24)
 $APP_PUBLIC_BASE    = 'https://makkpressapps.com/squarespace/googlesearchconsole';
 $PLATFORM_SOURCE    = 'Squarespace';
 $SITE_TABLE         = 'SquarespaceSite';
@@ -80,7 +80,7 @@ $GLOBAL_CTR = [
 
 require_once __DIR__ . '/../includes/config.php';
 
-$logFile      = __DIR__ . '/cron_weekly_digest.log';
+$logFile      = '/var/www/private-logs/squarespace/googlesearchconsole/scripts/cron_weekly_digest.log';
 $onlyInstance = null;
 $dry          = false;
 $force        = false;

@@ -395,46 +395,7 @@ $script = '<script>
             </div>
 
             <!-- Email Setting ========================================================================== -->
-            <div class="hidden" id="email-settings" role="tabpanel" aria-labelledby="email-settings-tab">
-                <form action="./core/UpdateEmailSettings.php" class="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-2" method="POST">
-                    <div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 mb-2">
-                            <div>
-                                <label for="senderName" class="inline-block font-semibold text-neutral-600 dark:text-neutral-200 text-sm mb-2">Sender Name <span class="text-danger-600 dark:text-danger-600">*</span></label>
-                                <input type="text" class="form-control rounded-lg" id="senderName" name="senderName" value="<?= htmlspecialchars($emailSettings['sender_name'] ?? '') ?>" placeholder="Enter Sender Name">
-                            </div>
-                            <div>
-                                <label for="senderEmail" class="inline-block font-semibold text-neutral-600 dark:text-neutral-200 text-sm mb-2">Sender Email <span class="text-danger-600 dark:text-danger-600">*</span></label>
-                                <input type="email" class="form-control rounded-lg" id="senderEmail" name="senderEmail" value="<?= htmlspecialchars($emailSettings['sender_email'] ?? '') ?>" placeholder="Enter Sender Email">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 mb-2">
-                            <div class="col-span-2">
-                                <label for="brevoApiKey" class="inline-block font-semibold text-neutral-600 dark:text-neutral-200 text-sm mb-2">Brevo API Key <span class="text-danger-600 dark:text-danger-600">*</span></label>
-                                <input type="text" class="form-control rounded-lg" id="brevoApiKey" name="brevoApiKey" value="<?= htmlspecialchars($emailSettings['brevo_api_key'] ?? '') ?>" placeholder="Enter Brevo API Key">
-                            </div>
-                        </div>
-                        <div class="flex items-center justify-center gap-3 mt-8">
-                            <button type="button" class="btn btn-cstm-muted">
-                                Cancel
-                            </button>
-                            <button type="submit" name="action" value="save" class="btn btn-cstm-primary">
-                                Save
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="lg:border-l border-gray-200 lg:pl-5 dark:border-gray-600">
-                        <label for="testEmail" class="inline-block font-semibold text-neutral-600 dark:text-neutral-200 text-sm mb-2">Send Test Email</label>
-                        <div class="flex flex-col items-center gap-3">
-                            <input type="email" class="form-control rounded-lg" id="testEmail" name="testEmail" placeholder="Enter email address">
-                            <button type="submit" name="action" value="test" class="btn btn-cstm-primary">
-                                Send
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
+            <?php include __DIR__ . '/partials/email-settings-tab.php'; ?>
 
             <!-- Wix Integration ========================================================================= -->
            <div class="hidden cstm-stripe-integration" id="stripe-integration" role="tabpanel" aria-labelledby="stripe-integration-tab">

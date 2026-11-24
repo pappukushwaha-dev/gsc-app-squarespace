@@ -1,4 +1,5 @@
 <?php
+require_once '/var/www/ir-guards/env.php'; // IR 2026-11-23: ir_env() reads this app's .env
 /**
  * Orgalytics GSC MCP connector settings (Squarespace app).
  * The secret must match MCP_INTERNAL_SECRET in the MCP server's .env.
@@ -13,4 +14,4 @@ define('MCP_INTERNAL_FALLBACK_URL', 'https://127.0.0.1');
 define('MCP_PLATFORM', 'squarespace');
 define('MCP_GA_COLUMN', 'shop_id');       // squarespace tables key off shop_id, NOT instance_id
 
-define('MCP_INTERNAL_SECRET', 'd42a609a6bc435b03fa2d20dc9296a870df7f914e72ff53433643c786bc4e058');
+define('MCP_INTERNAL_SECRET', ir_env('MCP_INTERNAL_SECRET', __DIR__ . '/.env')) /* IR 2026-11-23: secret moved to .env */;

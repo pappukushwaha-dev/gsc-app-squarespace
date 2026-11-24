@@ -68,6 +68,10 @@ if (!preg_match('~^https?://~i', $raw)) {
     $raw = 'https://' . $raw;
 }
 $host = strtolower(preg_replace('/^www\./i', '', parse_url($raw, PHP_URL_HOST) ?? ''));
+// 2026-11-24: match host + path (same as Wix). Host-only matching can pick
+// another site's property when several sites share one host by path
+// (subfolder installs, funnels) and copy its sitemaps into this store.
+$wantKey = $host . rtrim((string)(parse_url($raw, PHP_URL_PATH) ?? ''), '/');
 
 if ($host === '') {
     echo json_encode(['success' => false, 'error' => 'Invalid site_url']);
@@ -128,12 +132,14 @@ foreach (($sitesRes['json']['siteEntry'] ?? []) as $site) {
     }
 
     if (stripos($url, 'sc-domain:') === 0) {
-        $siteHost = strtolower(preg_replace('/^www\./i', '', substr($url, 10)));
+        // A domain property has no path: it only matches a site with no path.
+        $siteKey = strtolower(preg_replace('/^www\./i', '', substr($url, 10)));
     } else {
-        $siteHost = strtolower(preg_replace('/^www\./i', '', parse_url($url, PHP_URL_HOST) ?? ''));
+        $siteKey = strtolower(preg_replace('/^www\./i', '', parse_url($url, PHP_URL_HOST) ?? ''))
+                 . rtrim((string)(parse_url($url, PHP_URL_PATH) ?? ''), '/');
     }
 
-    if ($siteHost === $host) {
+    if ($siteKey === $wantKey) {
         $property = $url;
         break;
     }

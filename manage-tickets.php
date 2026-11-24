@@ -151,7 +151,7 @@ include './partials/layouts/layoutTop.php';
                 </div>
                 <div class="space-y-2">
                     <label class="text-sm">Attachment (Optional)</label>
-                    <input type="file" id="add-file" class="block w-full text-sm text-neutral-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cstm-primary/10 file:text-cstm-primary hover:file:bg-cstm-primary/20 border border-gray-300 rounded-md cursor-pointer">
+                    <input type="file" id="add-file" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.txt,application/pdf,image/png,image/jpeg,image/gif,image/webp,text/plain" class="block w-full text-sm text-neutral-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cstm-primary/10 file:text-cstm-primary hover:file:bg-cstm-primary/20 border border-gray-300 rounded-md cursor-pointer">
                     <div class="flex justify-end gap-2 pt-2">
                         <button id="add-cancel" class="btn btn-cstm-primary light">Cancel</button>
                         <button id="add-submit" class="btn btn-cstm-primary">Create</button>
@@ -261,19 +261,25 @@ include './partials/layouts/layoutTop.php';
                 </div>
             </div>
 
-                <!-- FOOTER / REPLY (sticky) -->
+                <!-- FOOTER (sticky); the reply box is switched off for now -->
                 <div class="mt-0 border-t pt-4 p-4 bg-white dark:bg-neutral-900">
+                    <?php if (false): /* Ticket reply switched off for now (2026-11-24) - change false to true to bring it back */ ?>
                     <label class="text-xs">Reply</label>
                     <textarea id="reply-text" class="form-control form-input w-full !mb-6 !mt-2" rows="3" placeholder="Write a reply..."></textarea>
+                    <?php endif; /* reply switched off */ ?>
 
-                    <div class="flex items-center gap-3 flex-col md:flex-row justify-center md:justify-between mt-2">
+                    <div class="flex items-center gap-3 flex-col md:flex-row justify-center md:justify-end mt-2">
+                        <?php if (false): /* Ticket reply switched off for now (2026-11-24) - change false to true to bring it back */ ?>
                         <div class="w-2/3">
-                            <input type="file" id="reply-file" class="block w-full text-sm text-neutral-500 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cstm-primary/10 file:text-cstm-primary hover:file:bg-cstm-primary/20 border border-gray-300 rounded-md cursor-pointer">
+                            <input type="file" id="reply-file" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.txt,application/pdf,image/png,image/jpeg,image/gif,image/webp,text/plain" class="block w-full text-sm text-neutral-500 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cstm-primary/10 file:text-cstm-primary hover:file:bg-cstm-primary/20 border border-gray-300 rounded-md cursor-pointer">
                         </div>
+                        <?php endif; /* reply switched off */ ?>
 
                         <div class="flex gap-2">
+                            <?php if (false): /* Ticket reply switched off for now (2026-11-24) - change false to true to bring it back */ ?>
                             <button id="reply-cancel" class="btn btn-cstm-primary light flex justify-center items-center gap-2"><iconify-icon icon="mdi:close-circle-outline" class="text-lg"></iconify-icon> Clear</button>
                             <button id="reply-send" class="btn btn-cstm-primary flex justify-center items-center gap-2"><iconify-icon icon="mdi:reply-outline" class="text-lg"></iconify-icon> Reply</button>
+                            <?php endif; /* reply switched off */ ?>
                             <button id="btn-delete-ticket" class="btn bg-danger-500 text-white flex justify-center items-center gap-2"> <iconify-icon icon="mdi:delete-outline" class="text-lg"></iconify-icon> Delete</button>
                         </div>
                     </div>
@@ -1112,6 +1118,38 @@ include './partials/layouts/layoutTop.php';
 
 
             // UPDATED: Create ticket logic to handle file uploads
+            /* SUP-03 (2026-11-24): the same rule the server enforces
+               (/var/www/ir-guards/upload_guard.php): pdf/png/jpg/jpeg/gif/webp/txt,
+               max 8 MB. Checked before anything is created, so an invalid file can
+               never produce a "submitted successfully" ticket. */
+            window.gscTicketFileError = window.gscTicketFileError || function (file) {
+                if (!file) return '';
+                const ext = (file.name.split('.').pop() || '').toLowerCase();
+                const ok  = ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'txt'];
+                if (file.name.indexOf('.') === -1 || !ok.includes(ext)) {
+                    return 'This file type is not allowed. Please attach a PDF, PNG, JPG, GIF, WEBP or TXT file.';
+                }
+                if (file.size > 8 * 1024 * 1024) {
+                    return 'This file is too large. The maximum attachment size is 8 MB.';
+                }
+                if (file.size === 0) {
+                    return 'This file is empty. Please choose another file.';
+                }
+                return '';
+            };
+
+            // Reject an invalid file the moment it is chosen and clear the field.
+            [ui.addFile, ui.replyFile].forEach(inp => {
+                if (!inp) return;
+                inp.addEventListener('change', () => {
+                    const err = window.gscTicketFileError(inp.files && inp.files[0]);
+                    if (err) {
+                        inp.value = '';
+                        showAlert(err, 'error');
+                    }
+                });
+            });
+
             ui.addSubmit.addEventListener('click', async () => {
                 const subj = ui.addSubject.value.trim();
                 const msg = ui.addMessage.value.trim();
@@ -1123,6 +1161,14 @@ include './partials/layouts/layoutTop.php';
                     showAlert('Subject and message required.', 'error');
                     return;
                 }
+
+                const addFileErr = window.gscTicketFileError(file);
+                if (addFileErr) {
+                    fileInput.value = '';
+                    showAlert(addFileErr, 'error');
+                    return;
+                }
+                let uploadFailed = '';
 
                 ui.addSubmit.disabled = true; // Disable button during submission
 
@@ -1188,15 +1234,21 @@ include './partials/layouts/layoutTop.php';
                             method: 'POST',
                             body: fd
                         });
-                        const upJson = await upRes.json();
+                        const upJson = await upRes.json().catch(() => ({}));
                         if (!upJson.success) {
-                            showAlert('Ticket created, but file upload failed: ' + (upJson.error || upJson.message || ''), 'error');
+                            uploadFailed = upJson.error || upJson.message || 'upload failed';
                         }
                     }
 
                     closeAddModal();
                     fetchTickets();
-                    showAlert('Ticket created successfully!', 'success');
+                    // An upload failure must stay visible - it used to be replaced
+                    // by the success message on the very next line.
+                    if (uploadFailed) {
+                        showAlert('Ticket created, but the attachment was not uploaded: ' + uploadFailed, 'error');
+                    } else {
+                        showAlert('Ticket created successfully!', 'success');
+                    }
 
                 } catch (e) {
                     console.error(e);
@@ -1233,12 +1285,19 @@ include './partials/layouts/layoutTop.php';
             }
 
             // Reply send
-            ui.replySend.addEventListener('click', async () => {
+            if (ui.replySend) ui.replySend.addEventListener('click', async () => {
                 const txt = ui.replyText.value.trim();
                 if (!txt) {
                     showAlert('Reply message required.', 'error');
                     return;
                 }
+                const replyFileErr = window.gscTicketFileError(ui.replyFile && ui.replyFile.files && ui.replyFile.files[0]);
+                if (replyFileErr) {
+                    ui.replyFile.value = '';
+                    showAlert(replyFileErr, 'error');
+                    return;
+                }
+                let replyUploadFailed = '';
 
                 ui.replySend.disabled = true; // Disable button during submission
                 try {
@@ -1274,16 +1333,20 @@ include './partials/layouts/layoutTop.php';
                                 method: 'POST',
                                 body: fd
                             });
-                            const upJson = await upRes.json();
+                            const upJson = await upRes.json().catch(() => ({}));
                             if (!upJson.success) {
-                                showAlert('Reply sent, but file upload failed: ' + (upJson.error || upJson.message || ''), 'error');
+                                replyUploadFailed = upJson.error || upJson.message || 'upload failed';
                             }
                         }
                     }
 
                     ui.replyText.value = '';
                     ui.replyFile.value = '';
-                    showAlert('Reply sent successfully.', 'success');
+                    if (replyUploadFailed) {
+                        showAlert('Reply sent, but the attachment was not uploaded: ' + replyUploadFailed, 'error');
+                    } else {
+                        showAlert('Reply sent successfully.', 'success');
+                    }
                     await openView(currentTicketId); // Refresh view to show new message
 
                 } catch (e) {

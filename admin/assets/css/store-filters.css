@@ -1,0 +1,121 @@
+/*
+ * Filter bar of the admin store lists (stores, active, inactive, paid, test, unauthorized).
+ * Added 2026-11-24: the old single flex row overflowed the card on desktop and broke on phones.
+ * Layout (same as the JSON Schema App admin):
+ *   desktop  row 1: title | search ............ From [date] To [date]
+ *            row 2: Show | Plan Status | Plan Name | (Export Type) ...... [Reset] [Export]
+ *   phone    everything stacks; selects and dates in a 2-column grid with the label above.
+ * Element ids are unchanged, so the page scripts did not need to change.
+ */
+.sf-header { padding: 18px 24px; }
+.sf-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+.sf-row + .sf-row { margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
+.dark .sf-row + .sf-row { border-top-color: #4b5563; }
+
+.sf-title { margin: 0; font-size: 1.125rem; font-weight: 600; white-space: nowrap; }
+
+.sf-search {
+  display: flex; align-items: center; gap: 8px;
+  width: 280px; max-width: 100%; height: 40px; padding: 0 12px;
+  background: #fff; border: 1px solid #d1d5db; border-radius: 8px;
+}
+.sf-search:focus-within { border-color: var(--bg-primary); }
+.dark .sf-search { background: #374151; border-color: #4b5563; }
+.sf-search input { flex: 1; min-width: 0; height: 100%; padding: 0; background: transparent; border: 0; outline: 0; box-shadow: none; font-size: 14px; }
+
+.sf-field { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sf-field label { margin: 0; font-size: 14px; color: #4b5563; white-space: nowrap; }
+.dark .sf-field label { color: #e5e7eb; }
+.sf-field .form-control { height: 40px; min-width: 0; width: auto; }
+.sf-field select.form-control { min-width: 80px; width: 170px; }
+.sf-field select#per-page-select { width: 80px; }
+.sf-field select#export-type { width: 200px; }
+.sf-field input[type="date"].form-control { width: 150px; }
+
+.sf-group { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+.sf-push { margin-left: auto; }
+
+.sf-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 40px; padding: 0 22px; border-radius: 8px; font-size: 14px; font-weight: 500;
+  border: 1px solid var(--bg-primary); cursor: pointer; white-space: nowrap;
+}
+.sf-btn-outline { background: #fff; color: var(--bg-primary); }
+.sf-btn-outline:hover { background: rgb(var(--bg-primary-rgb) / 0.08); }
+.dark .sf-btn-outline { background: transparent; }
+.sf-btn-solid { background: var(--bg-primary); color: #fff; }
+.sf-btn-solid:hover { opacity: .9; }
+
+/* tablet: let the date pair drop under the search instead of overflowing */
+@media (max-width: 1199px) {
+  .sf-dates { margin-left: 0; }
+}
+
+/* phone */
+@media (max-width: 767px) {
+  .sf-header { padding: 16px; }
+  .sf-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .sf-row > * { grid-column: 1 / -1; }
+  .sf-search { width: 100%; }
+  .sf-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .sf-field { flex-direction: column; align-items: stretch; gap: 4px; }
+  .sf-field .form-control,
+  .sf-field select.form-control,
+  .sf-field select#per-page-select,
+  .sf-field select#export-type,
+  .sf-field input[type="date"].form-control { width: 100%; max-width: none; }
+  .sf-btn { width: 100%; }
+}
+
+/* ---- v2 (2026-11-24) ----
+ * - text of selects/dates sat low: .form-control has 10px top/bottom padding inside a 40px box;
+ * - long options ("Users with Active Subscription") wrapped out of the select;
+ * - Reset / Export now sit at the end of the dropdown row on desktop
+ *   (labels above the dropdowns there, so four dropdowns + both buttons fit one line).
+ */
+.sf-header select.form-control,
+.sf-header input[type="date"].form-control {
+  padding-top: 0; padding-bottom: 0; line-height: 38px; font-size: 14px;
+}
+.sf-header select.form-control {
+  padding-left: 12px; padding-right: 32px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sf-header input[type="date"].form-control { padding-left: 10px; padding-right: 8px; width: 152px; }
+.sf-search { flex: 0 1 280px; min-width: 180px; }
+
+@media (min-width: 768px) {
+  .sf-filters-row { flex-wrap: nowrap; align-items: flex-end; }
+  .sf-filters-row .sf-filters { flex: 1 1 auto; flex-wrap: nowrap; min-width: 0; }
+  .sf-filters-row .sf-field { flex-direction: column; align-items: stretch; gap: 4px; flex: 1 1 160px; min-width: 0; max-width: 220px; }
+  .sf-filters-row .sf-field.sf-field-show { flex: 0 0 80px; }
+  .sf-filters-row .sf-field select.form-control,
+  .sf-filters-row .sf-field select#per-page-select,
+  .sf-filters-row .sf-field select#export-type { width: 100%; }
+  .sf-filters-row .sf-push { flex: 0 0 auto; flex-wrap: nowrap; }
+  .sf-filters-row .sf-btn { padding: 0 18px; }
+}
+@media (max-width: 767px) {
+  .sf-header input[type="date"].form-control { width: 100%; }
+  .sf-push { margin-left: 0; }
+}
+
+/* desktop: keep title, search and From/To on one line; the search box shrinks instead of the dates wrapping */
+.sf-search { min-width: 150px; }
+@media (min-width: 900px) {
+  .sf-top-row { flex-wrap: nowrap; }
+  .sf-top-row .sf-dates { flex-wrap: nowrap; flex: 0 0 auto; margin-left: auto; }
+}
+
+/* v3: custom-style.css gives every select "appearance: base-select" (Chrome 135+ customizable select).
+ * In that mode the padding-right / ellipsis above are ignored and long text runs under the arrow.
+ * The filter dropdowns use the classic look instead: theme arrow as background image, text cut with "...". */
+.sf-header select.form-control { appearance: none; -webkit-appearance: none; }
+.sf-header select.form-control {
+  padding-right: 32px !important;
+}
+
+/* phone: a lone button (e.g. only Export) takes the full width */
+@media (max-width: 767px) {
+  .sf-group > .sf-btn:only-child { grid-column: 1 / -1; }
+}

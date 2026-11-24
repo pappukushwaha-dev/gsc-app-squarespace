@@ -5,6 +5,7 @@ header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/tickets_min.php';
+require_once '/var/www/html/_shared/ticket_guard.php'; ticket_guard('status'); // 2026-11-20 security
 
 try {
     $raw = file_get_contents('php://input');

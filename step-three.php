@@ -536,6 +536,12 @@ $alreadySubmitted = !empty($sitemapRow);
 }
 .s3x-stp.is-done .s3x-stp-t { color: #0f172a; }
 .dark .s3x-stp.is-done .s3x-stp-t { color: #f1f5f9; }
+/* sync step could not finish (2026-11-24): amber "!" */
+.s3x-stp.is-warn .s3x-stp-ic { border-color: #f59e0b; background: #f59e0b; }
+.s3x-stp.is-warn .s3x-stp-ic::after { content: "!"; position: absolute; inset: 0; color: #fff;
+    font-size: 11px; font-weight: 800; line-height: 14px; text-align: center; }
+.s3x-stp.is-warn .s3x-stp-t { color: #b45309; }
+.dark .s3x-stp.is-warn .s3x-stp-t { color: #fcd34d; }
 
 .s3x-ov-foot { margin: 16px 0 0; font-size: 12px; font-weight: 550; color: #3b5bfd; }
 
@@ -802,6 +808,10 @@ $alreadySubmitted = !empty($sitemapRow);
                 <div class="s3x-stp" data-step="process">
                     <span class="s3x-stp-ic"></span>
                     <span class="s3x-stp-t">Processing Response</span>
+                </div>
+                <div class="s3x-stp" data-step="sync">
+                    <span class="s3x-stp-ic"></span>
+                    <span class="s3x-stp-t">Syncing sitemap status</span>
                 </div>
             </div>
 

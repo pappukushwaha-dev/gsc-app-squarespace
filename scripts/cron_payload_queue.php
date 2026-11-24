@@ -47,7 +47,7 @@ const MAX_ATTEMPTS = 3;
  * than attempted three times first. */
 const KNOWN_TYPES = ['weekly_digest', 'first_report', 'crash_alert', 'page1_breakthrough'];
 
-$logFile = __DIR__ . '/cron_payload_queue.log';
+$logFile = '/var/www/private-logs/squarespace/googlesearchconsole/scripts/cron_payload_queue.log';
 
 /* ---------- arguments ---------- */
 $limit    = BATCH_SIZE;

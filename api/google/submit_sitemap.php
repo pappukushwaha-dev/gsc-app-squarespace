@@ -143,6 +143,15 @@ $siteForApi = $siteUrl; // EXACT string from DB — DO NOT TOUCH
 // turns a space into '+', which is only correct in a query string — in a
 // path Google reads the '+' literally and the sitemap URL no longer
 // matches the one it holds.
+// 2026-11-24 (QA S3-02): Google accepts ANY path on the property, so "/abc"
+// showed as "Accepted". Check the URL really is a sitemap before submitting.
+require_once __DIR__ . '/../../includes/sitemap_validate.php';
+$sitemapCheck = gscValidateSitemapUrl((string) $sitemapUrl, (string) $siteForApi);
+if (!$sitemapCheck['ok']) {
+    echo json_encode(['success' => false, 'error' => 'invalid_sitemap', 'message' => $sitemapCheck['message']]);
+    exit;
+}
+
 $apiUrl = 'https://www.googleapis.com/webmasters/v3/sites/'
     . rawurlencode($siteForApi)
     . '/sitemaps/'

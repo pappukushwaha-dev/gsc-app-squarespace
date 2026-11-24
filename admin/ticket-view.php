@@ -264,6 +264,7 @@ include './partials/layouts/layoutTop.php';
             </div>
         </div>
 
+        <?php if (false): /* Ticket reply switched off for now (2026-11-24) - change false to true to bring it back */ ?>
         <!-- Reply form -->
         <div class="card rounded-xl border-0 overflow-hidden">
             <div class="card-body p-6">
@@ -288,6 +289,7 @@ include './partials/layouts/layoutTop.php';
                 </form>
             </div>
         </div>
+        <?php endif; /* reply switched off */ ?>
 
         <!-- Status history -->
         <div class="card rounded-xl border-0 overflow-hidden">

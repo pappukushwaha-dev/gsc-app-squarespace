@@ -14,10 +14,10 @@ if (!empty($_SESSION['shop_id'])) {
 
 // (Optional) accept instanceid via URL/JWT and log in instantly
 function b64url_decode($s){ return base64_decode(strtr($s,'-_','+/')); }
-if (!empty($_GET['instanceid'])) {
+if (false && !empty($_GET['instanceid'])) { // 2026-11-20 security: unsigned login disabled
     $_SESSION['instance_id'] = $_GET['instanceid'];
     header('Location: index.php'); exit;
-} elseif (!empty($_GET['instance'])) {
+} elseif (false && !empty($_GET['instance'])) { // 2026-11-20 security: unsigned JWT login disabled
     $p = explode('.', $_GET['instance']);
     if (count($p) >= 2) {
         $payload = json_decode(b64url_decode($p[1]), true);
@@ -88,6 +88,13 @@ function decryptAdminValue(?string $value): ?string
     }
 
     $decrypted = decrypt($value, ENCRYPTION_KEY);
+
+    if ($decrypted === false || $decrypted === '') {
+        // Values saved by Admin → Email Settings use includes/credentials.php's
+        // key; EmailHelper tries every key derivation the app uses.
+        require_once __DIR__ . '/includes/EmailHelper.php';
+        $decrypted = gscDecryptAdminValue($value) ?? false;
+    }
 
     if ($decrypted === false) {
         return null;
@@ -160,43 +167,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = is_array($data) ? ($data['action'] ?? '') : '';
 
     try {
+        /* IR 2026-11-23: OTP login fixed + hardened.
+           Was broken: read $row['instance_id'] (the query selects shop_id) and wrote/queried an
+           otp_verifications.instance_id column that does not exist (the column is shop_id) -> 500.
+           Now: one live code per email, at most one new code per minute, every check burns 1 of the
+           code's 5 minutes BEFORE comparing (max 5 guesses, also under parallel requests), timing-safe
+           compare, code deleted after use, and the same session keys magic-login.php sets. */
         if ($action === 'send_otp') {
             $email = filter_var(trim($data['email'] ?? ''), FILTER_VALIDATE_EMAIL);
             if (!$email) json_err('Please provide a valid email.');
+            $generic = ['message' => 'If an account exists for that email, an OTP has been sent.'];
 
             // Lookup shop_id from SquarespaceSite by owner email
             $stmt = $pdo->prepare("SELECT shop_id FROM SquarespaceSite WHERE owner_email = ? LIMIT 1");
             $stmt->execute([$email]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$row || (string) $row['shop_id'] === '') {
+                json_ok($generic); // generic message: no account enumeration
+            }
+            $shop_id = (string) $row['shop_id'];
 
-            if (!$row) {
-                // Generic message to avoid enumeration
-                json_ok(['message' => 'If an account exists for that email, an OTP has been sent.']);
+            // resend throttle: a code was issued for this email less than 60 seconds ago
+            $stmt = $pdo->prepare("SELECT 1 FROM otp_verifications WHERE email = ? AND is_verified = 0 AND created_at > DATE_SUB(NOW(), INTERVAL 60 SECOND) LIMIT 1");
+            $stmt->execute([$email]);
+            if ($stmt->fetchColumn()) {
+                json_ok($generic);
             }
 
-            $instance_id = $row['instance_id'];
-            $_SESSION['email'] = $email; // keep email only (do NOT set instance yet)
+            $_SESSION['email'] = $email; // keep email only (do NOT set the shop yet)
 
-            // Make OTP and store (same table/columns you already use)
-            $otp = random_int(100000, 999999);
-            $expires_at = date('Y-m-d H:i:s', strtotime('+5 minutes'));
+            // one live code per email
+            $pdo->prepare("DELETE FROM otp_verifications WHERE email = ? AND is_verified = 0")->execute([$email]);
+            $otp = (string) random_int(100000, 999999);
+            $pdo->prepare("INSERT INTO otp_verifications (email, otp, created_at, expires_at, is_verified, shop_id)
+                           VALUES (?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 5 MINUTE), 0, ?)")
+                ->execute([$email, $otp, $shop_id]);
 
-            $sql = "INSERT INTO otp_verifications (email, otp, created_at, expires_at, is_verified, instance_id)
-                    VALUES (?, ?, NOW(), ?, 0, ?)
-                    ON DUPLICATE KEY UPDATE otp=VALUES(otp), expires_at=VALUES(expires_at), is_verified=0";
-            $ins = $pdo->prepare($sql);
-            $ins->execute([$email, $otp, $expires_at, $instance_id]);
-
-            /* TEMP: SMTP (admin_settings) is not configured yet — until then
-               the OTP lands in the error log so login stays testable.
-               Remove once SMTP is set up in the admin panel. */
-            error_log('[otp] ' . $email . ' => ' . $otp);
-
-            //  sendOtpEmail($email, $otp);
             if (!sendOtpEmail($pdo, $email, $otp)) {
                 json_err("Mail send failed", 500);
             }
-            json_ok(['message' => 'If an account exists for that email, an OTP has been sent.']);
+            json_ok($generic);
 
         } elseif ($action === 'verify_otp') {
             $email = filter_var(trim($data['email'] ?? ''), FILTER_VALIDATE_EMAIL);
@@ -204,32 +214,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$email) json_err('Please provide a valid email.');
             if (!preg_match('/^\d{6}$/', $otp)) json_err('Invalid OTP format.');
 
-            // Get shop_id for this email (we did not set it in session yet)
-            $stmt = $pdo->prepare("SELECT shop_id FROM SquarespaceSite WHERE owner_email = ? LIMIT 1");
+            $stmt = $pdo->prepare("SELECT id, otp, shop_id FROM otp_verifications
+                                   WHERE email = ? AND is_verified = 0 AND expires_at > NOW()
+                                   ORDER BY id DESC LIMIT 1");
             $stmt->execute([$email]);
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            if (!$row) json_err('Invalid or expired OTP.', 401);
-
-            $instance_id = $row['instance_id'];
-
-            // Validate OTP against otp_verifications
-            $sql = "SELECT id FROM otp_verifications
-                    WHERE email = ? AND otp = ? AND is_verified = 0 AND expires_at > NOW() AND instance_id = ?
-                    LIMIT 1";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([$email, $otp, $instance_id]);
             $otpRow = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$otpRow) json_err('Invalid or expired OTP.', 401);
 
-            // Mark as verified
-            $upd = $pdo->prepare("UPDATE otp_verifications SET is_verified = 1 WHERE id = ?");
-            $upd->execute([$otpRow['id']]);
+            // burn one minute of this code's life first: each guess costs, even in parallel
+            $burn = $pdo->prepare("UPDATE otp_verifications SET expires_at = DATE_SUB(expires_at, INTERVAL 1 MINUTE)
+                                   WHERE id = ? AND is_verified = 0 AND expires_at > NOW()");
+            $burn->execute([$otpRow['id']]);
+            if ($burn->rowCount() !== 1 || !hash_equals((string) $otpRow['otp'], $otp)) {
+                json_err('Invalid or expired OTP.', 401);
+            }
 
-            // Now we log the user in: set the session shop and redirect.
-            // Squarespace pages key off shop_id (NOT instance_id).
-            unset($_SESSION['email']);
-            $_SESSION['shop_id'] = $instance_id;
+            // the code must still belong to this email's current store
+            $stmt = $pdo->prepare("SELECT shop_id, owner_email, domain FROM SquarespaceSite WHERE owner_email = ? AND shop_id = ? LIMIT 1");
+            $stmt->execute([$email, (string) $otpRow['shop_id']]);
+            $site = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$site) json_err('Invalid or expired OTP.', 401);
+
+            // single use
+            $pdo->prepare("DELETE FROM otp_verifications WHERE id = ?")->execute([$otpRow['id']]);
+
+            // Log in: new session id first, then the same keys magic-login.php sets.
             session_regenerate_id(true);
+            unset($_SESSION['email']);
+            $_SESSION['user_id'] = (string) $site['shop_id'];
+            $_SESSION['shop_id'] = (string) $site['shop_id'];
+            $_SESSION['email']   = (string) ($site['owner_email'] ?? '');
+            $_SESSION['domain']  = (string) ($site['domain'] ?? '');
 
             json_ok(['redirect' => 'dashboard.php']);
 

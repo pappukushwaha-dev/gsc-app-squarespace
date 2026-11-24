@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+require_once '/var/www/ir-guards/env.php'; // IR 2026-11-23: ir_env() reads this app's .env
 /*
  Self-contained mailer for admin/staff notifications.
 
@@ -17,8 +18,8 @@ use PHPMailer\PHPMailer\Exception as PHPMailerException;
 
 if (!defined('MAILER_SMTP_HOST'))   define('MAILER_SMTP_HOST',   'smtp-broadcasts.postmarkapp.com');
 if (!defined('MAILER_SMTP_PORT'))   define('MAILER_SMTP_PORT',   587);
-if (!defined('MAILER_SMTP_USER'))   define('MAILER_SMTP_USER',   '5d6fd937-08c5-41e5-982c-84269ac2b273');
-if (!defined('MAILER_SMTP_PASS'))   define('MAILER_SMTP_PASS',   '5d6fd937-08c5-41e5-982c-84269ac2b273');
+if (!defined('MAILER_SMTP_USER'))   define('MAILER_SMTP_USER', ir_env('MAILER_SMTP_USER', __DIR__ . '/../.env')) /* IR 2026-11-23: secret moved to .env */;
+if (!defined('MAILER_SMTP_PASS'))   define('MAILER_SMTP_PASS', ir_env('MAILER_SMTP_PASS', __DIR__ . '/../.env')) /* IR 2026-11-23: secret moved to .env */;
 if (!defined('MAILER_FROM_EMAIL'))  define('MAILER_FROM_EMAIL',  'support@makkpressapps.com');
 if (!defined('MAILER_FROM_NAME'))   define('MAILER_FROM_NAME',   'Google Search Console by MP');
 if (!defined('MAILER_SUPPORT_TO'))  define('MAILER_SUPPORT_TO',  'support@makkpressapps.com');

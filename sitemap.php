@@ -1165,7 +1165,7 @@ include './partials/layouts/layoutTop.php';
                 <?php if ($siteUrl): ?>
                     <div class="smx-chips">
                         <span class="smx-chips-lbl">Common paths</span>
-                        <?php foreach (['sitemap.xml', 'pages-sitemap.xml', 'blog-posts-sitemap.xml', 'store-products-sitemap.xml'] as $p): ?>
+                        <?php foreach (['sitemap.xml'] as $p): ?>
                             <button type="button" class="smx-chip js-quick" data-path="<?= htmlspecialchars($p) ?>">
                                 <?= htmlspecialchars($p) ?>
                             </button>

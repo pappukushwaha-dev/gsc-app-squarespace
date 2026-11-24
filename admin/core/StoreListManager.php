@@ -63,7 +63,7 @@ class StoreListManager
         ";
     }
 
-    private static function whereSql(string $type, string $search, string $plan, array &$params): string
+    private static function whereSql(string $type, string $search, string $plan, array &$params, array $filters = []): string
     {
         $w = [];
         if ($type === 'paid') {
@@ -89,10 +89,16 @@ class StoreListManager
                 $params[":q{$i}"] = '%' . $search . '%';
             }
         }
+        if ($filters) { // 2026-11-24: Wix-style filters, /var/www/html/_shared/admin_store_filters.php
+            require_once '/var/www/html/_shared/admin_store_filters.php';
+            [$sfW, $sfP] = gsc_sf_where($filters, self::ID_COL, 'ws.' . self::ID_COL, 'ws.created_at', 'ws.is_active');
+            $w = array_merge($w, $sfW);
+            $params += $sfP;
+        }
         return ' WHERE ' . implode(' AND ', $w);
     }
 
-    public static function getStores(string $type, string $search, string $plan, int $perPage, int $page): array
+    public static function getStores(string $type, string $search, string $plan, int $perPage, int $page, array $filters = []): array
     {
         try {
             $params = [];
@@ -106,7 +112,7 @@ class StoreListManager
                     ga.email AS google_email,
                     s.plan_name, s.billing_period, s.status AS sub_status, s.expires_on, s.cancelled_at,
                     s.stripe_subscription_id
-                ' . self::fromSql() . self::whereSql($type, $search, $plan, $params) . '
+                ' . self::fromSql() . self::whereSql($type, $search, $plan, $params, $filters) . '
                 ORDER BY ws.created_at DESC, ws.id DESC
                 LIMIT :offset, :limit');
             foreach ($params as $k => $v) {
@@ -122,11 +128,11 @@ class StoreListManager
         }
     }
 
-    public static function getTotal(string $type, string $search = '', string $plan = ''): int
+    public static function getTotal(string $type, string $search = '', string $plan = '', array $filters = []): int
     {
         try {
             $params = [];
-            $stmt = self::$pdo->prepare('SELECT COUNT(*) ' . self::fromSql() . self::whereSql($type, $search, $plan, $params));
+            $stmt = self::$pdo->prepare('SELECT COUNT(*) ' . self::fromSql() . self::whereSql($type, $search, $plan, $params, $filters));
             foreach ($params as $k => $v) {
                 $stmt->bindValue($k, $v, PDO::PARAM_STR);
             }

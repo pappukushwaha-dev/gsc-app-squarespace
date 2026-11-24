@@ -8,7 +8,7 @@ require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 
 // Define the log file location
-$logFile = __DIR__ . '/post_crm_cron.log';
+$logFile = '/var/www/private-logs/squarespace/googlesearchconsole/cron/post_crm_cron.log';
 
 try {
     /**
@@ -17,7 +17,7 @@ try {
     $targetDb = new PDO(
         "mysql:host=localhost;dbname=heffl-crm-lead;charset=utf8mb4",
         "root",
-        "Makkpress@123AA",
+        "Makkapps#789db@123AM",
         [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,

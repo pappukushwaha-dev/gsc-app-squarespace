@@ -17,10 +17,16 @@ global $pdo;
    1️⃣ Resolve INSTANCE ID from OAuth state (BigCommerce)
 ========================================================== */
 
-$instanceId = $_GET['state'] ?? null;
+// IR 2026-11-23: state must be the random value get_auth_url.php stored in THIS session;
+// the shop id is taken from the session, never from the URL.
+$__st = (string) ($_GET['state'] ?? '');
+$__ok = $__st !== '' && !empty($_SESSION['google_oauth_state']) && hash_equals((string) $_SESSION['google_oauth_state'], $__st);
+unset($_SESSION['google_oauth_state']);
+$instanceId = $__ok ? (string) ($_SESSION['google_oauth_instance'] ?? '') : '';
 
 if (!$instanceId) {
-    die('Missing instance parameter.');
+    http_response_code(403);
+    die('This Google sign-in link has expired. Please start the Google connection again from the app.');
 }
 
 // Restore session safely
@@ -31,8 +37,17 @@ $_SESSION['shop_id'] = $instanceId;
    2️⃣ Validate OAuth code
 ========================================================== */
 
-if (!isset($_GET['code'])) {
-    die("Missing 'code' parameter.");
+// 2026-11-24 (S1-02): Google sends ?error=access_denied (and no code) when
+// the user presses Cancel on the consent screen. Send them back to Step 1
+// with a clear message instead of a blank "Missing 'code'" page.
+if (!isset($_GET['code']) || !is_string($_GET['code']) || $_GET['code'] === '') {
+    $oauthError = is_string($_GET['error'] ?? null) ? $_GET['error'] : '';
+    $reason     = ($oauthError === 'access_denied') ? 'cancelled' : 'failed';
+    if ($reason === 'failed') {
+        error_log('[google_oauth_callback] no code returned, error=' . substr($oauthError, 0, 60));
+    }
+    header('Location: ' . APP_URL . "setup-wizard.php?shop_id=" . urlencode($instanceId) . "&step=1" . '&auth_error=' . $reason);
+    exit;
 }
 
 $code = $_GET['code'];

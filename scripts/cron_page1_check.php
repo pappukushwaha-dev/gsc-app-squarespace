@@ -48,7 +48,7 @@ declare(strict_types=1);
 ini_set('display_errors', '1');
 error_reporting(E_ALL & ~E_DEPRECATED);
 
-$ENCHARGE_WRITE_KEY = 'n4ZJTpZktcyj32fQLBW555m4N';
+$ENCHARGE_WRITE_KEY = require __DIR__ . '/../includes/encharge_key.php'; // key lives in .env (2026-11-24)
 $APP_PUBLIC_BASE    = 'https://makkpressapps.com/squarespace/googlesearchconsole';
 $PLATFORM_SOURCE    = 'Squarespace';
 $SITE_TABLE         = 'SquarespaceSite';
@@ -67,7 +67,7 @@ $F_PATH     = 'page1_page_path';
 
 require_once __DIR__ . '/../includes/config.php';
 
-$logFile      = __DIR__ . '/cron_page1_check.log';
+$logFile      = '/var/www/private-logs/squarespace/googlesearchconsole/scripts/cron_page1_check.log';
 $onlyInstance = isset($argv[1]) && $argv[1][0] !== '-' ? $argv[1] : null;
 $force        = in_array('--force', $argv, true);
 

@@ -728,6 +728,19 @@ if ($shopId) {
                     </div>
                 </div>
 
+                <?php $authErrorS1 = (string) ($_GET['auth_error'] ?? ''); ?>
+                <?php if ($authErrorS1 === 'cancelled' || $authErrorS1 === 'failed'): ?>
+                    <style>.gcn-notice{background:#fffbeb;border-color:#fcd34d;color:#92400e}.dark .gcn-notice{background:rgba(245,158,11,.12);border-color:#b45309;color:#fcd34d}</style>
+                    <!-- S1-02 (2026-11-24): shown after Cancel / failure on Google's consent screen -->
+                    <div id="google-connect-notice" role="alert" class="gcn-notice w-full max-w-md mx-auto mb-6 flex items-start gap-3 px-4 py-3 rounded-lg border text-sm text-left">
+                        <iconify-icon icon="solar:danger-triangle-bold" class="text-lg shrink-0 mt-0.5"></iconify-icon>
+                        <div>
+                            <p class="font-semibold"><?= $authErrorS1 === 'cancelled' ? 'Google sign-in was cancelled' : "We couldn't connect your Google account" ?></p>
+                            <p class="mt-0.5"><?= $authErrorS1 === 'cancelled' ? 'Your Google account was not connected.' : 'Google did not finish the sign-in.' ?> Click <strong>Connect Your Domain</strong> below to try again.</p>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
                 <!-- Website URL display (step 1) -->
                 <div class="w-full max-w-md mx-auto mb-6 text-left">
                     <label class="block text-xs font-semibold text-neutral-500 dark:text-neutral-400 mb-1">

@@ -7,3 +7,12 @@
 !01-ecwid-payload-queue.sql
 # platform migration file must be committed
 !01-*-other-app-clicks.sql
+
+# 2026-11-24: keep IDE folders, archives, local env, DB dumps and test folders out of git
+.vs/
+*.zip
+.zai/
+.env.*
+tests/
+# QA page holds a password hash; this repo is public
+test_modules.php

@@ -36,8 +36,17 @@ if ($listType !== 'paid' || !isset(StoreListManager::PLAN_FILTERS[$planFilter]))
     $planFilter = '';
 }
 
-$stores      = StoreListManager::getStores($listType, $searchQuery, $planFilter, $perPage, $currentPage);
-$totalStores = StoreListManager::getTotal($listType, $searchQuery, $planFilter);
+// 2026-11-24: Wix-style filter bar (plan status / plan name), /var/www/html/_shared/admin_store_filters.php
+require_once '/var/www/html/_shared/admin_store_filters.php';
+$sfFilters = gsc_sf_read($_GET);
+$sfFilters['export_type'] = 'all';
+$sfFilters['status'] = 'all';
+if ($listType === 'paid') {
+    $sfFilters['plan_status'] = 'all'; // the Paid list keeps its own plan filter (?plan=)
+}
+
+$stores      = StoreListManager::getStores($listType, $searchQuery, $planFilter, $perPage, $currentPage, $sfFilters);
+$totalStores = StoreListManager::getTotal($listType, $searchQuery, $planFilter, $sfFilters);
 $totalPages  = max(1, (int)ceil($totalStores / $perPage));
 
 $h = static fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -49,59 +58,62 @@ $tone = [
 ];
 $idParam = StoreListManager::ID_COL;
 
-$script = '
+$script = str_replace(['__SELF__', '__PAID__', '__LIST__'], [json_encode($selfUrl), $listType === 'paid' ? 'true' : 'false', json_encode($listType)], <<<'JS'
 <script>
+    // 2026-11-24: Wix-style filters (shared header from /var/www/html/_shared/admin_store_filters.php)
     $(document).ready(function () {
-        var timer = null, self = ' . json_encode($selfUrl) . ';
+        var timer = null, self = __SELF__, isPaid = __PAID__, listType = __LIST__;
+        function params(page) {
+            var p = new URLSearchParams();
+            p.set("show", $("#per-page-select").val());
+            p.set("page", page || 1);
+            var q = ($("#search-input").val() || "").trim(); if (q) p.set("search", q);
+            var ps = $("#plan-status-select").val() || ""; if (ps && ps !== "all") p.set(isPaid ? "plan" : "plan_status", ps);
+            var pk = $("#plan-name-select").val() || "all"; if (pk !== "all") p.set("plan_key", pk);
+            return p;
+        }
         function fetchRows(page) {
-            var params = new URLSearchParams();
-            params.set("show", $("#per-page-select").val());
-            params.set("page", page || 1);
-            var q = $("#search-input").val(); if (q) params.set("search", q);
-            var pl = $("#plan-select").val(); if (pl) params.set("plan", pl);
-            $.get(self + "?" + params.toString(), function (response) {
+            var p = params(page);
+            $.get(self + "?" + p.toString(), function (response) {
                 var $r = $("<div>").html(response);
                 $(".sl-table").html($r.find(".sl-table").html());
                 $(".sl-pager").html($r.find(".sl-pager").html());
-                window.history.replaceState({}, "", self + "?" + params.toString());
+                $("#totalRecords").text($r.find("#totalRecords").text());
+                window.history.replaceState({}, "", self + "?" + p.toString());
             });
         }
         $("#search-input").on("input", function () { clearTimeout(timer); timer = setTimeout(function () { fetchRows(1); }, 300); });
-        $("#per-page-select, #plan-select").on("change", function () { fetchRows(1); });
+        $("#per-page-select, #plan-status-select, #plan-name-select").on("change", function () { fetchRows(1); });
         $(document).on("click", ".sl-pager a[data-page]", function (e) { e.preventDefault(); fetchRows($(this).data("page")); });
+        $("#reset-filters").on("click", function () {
+            $("#search-input").val("");
+            $("#per-page-select, #plan-status-select, #plan-name-select").prop("selectedIndex", 0);
+            fetchRows(1);
+        });
+        $("#exportData").on("click", function () {
+            var p = params(1);
+            p.delete("show"); p.delete("page");
+            p.set("list", listType);
+            p.set("export", "1");
+            window.location.href = "./core/StoreExport.php?" + p.toString();
+        });
     });
 </script>
-';
+JS);
 
 include './partials/layouts/layoutTop.php';
 ?>
 
 <div class="card rounded-xl border-0 overflow-hidden">
-    <div class="card-header border-b bg-white dark:bg-neutral-700 py-4 px-6 flex flex-wrap items-center gap-3">
-        <span class="text-base font-medium">Show</span>
-        <select id="per-page-select" class="form-select form-select-sm w-auto dark:bg-neutral-600 rounded-lg">
-            <?php foreach ([10, 25, 50, 100] as $n): ?>
-                <option value="<?= $n ?>" <?= $perPage === $n ? 'selected' : '' ?>><?= $n ?></option>
-            <?php endforeach; ?>
-        </select>
-
-        <?php if ($listType === 'paid'): ?>
-            <select id="plan-select" class="form-select form-select-sm w-auto dark:bg-neutral-600 rounded-lg">
-                <option value="">All paid plans</option>
-                <?php foreach (StoreListManager::PLAN_FILTERS as $k => $label): ?>
-                    <option value="<?= $h($k) ?>" <?= $planFilter === $k ? 'selected' : '' ?>><?= $h($label) ?></option>
-                <?php endforeach; ?>
-            </select>
-        <?php endif; ?>
-
-        <form class="navbar-search" onsubmit="return false;">
-            <input type="text" id="search-input" class="bg-white dark:bg-neutral-700 h-10"
-                placeholder="Search store, email, URL" value="<?= $h($searchQuery) ?>">
-            <iconify-icon icon="ion:search-outline" class="icon"></iconify-icon>
-        </form>
-
-        <span class="ml-auto text-sm text-neutral-500 dark:text-neutral-300"><?= (int)$totalStores ?> stores</span>
-    </div>
+    <?= gsc_sf_header_html([
+        'heading'             => $title,
+        'total'               => $totalStores,
+        'search'              => $searchQuery,
+        'per_page'            => $perPage,
+        'filters'             => $sfFilters,
+        'plan_status_options' => $listType === 'paid' ? ['' => 'All'] + StoreListManager::PLAN_FILTERS : GSC_SF_PLAN_STATUS,
+        'plan_status_value'   => $listType === 'paid' ? $planFilter : $sfFilters['plan_status'],
+    ]) ?>
 
     <div class="card-body p-6">
         <div class="sl-table cstm-scroll-sm overflow-x-auto">

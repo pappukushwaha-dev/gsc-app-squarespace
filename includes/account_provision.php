@@ -262,7 +262,7 @@ if (!function_exists('createMagicToken')) {
 if (!function_exists('sendMagicLink')) {
     function sendMagicLink(string $email, string $token): bool
     {
-        $link = APP_URL . '/magic-login.php?token=' . urlencode($token);
+        $link = rtrim(APP_URL, '/') . '/magic-login.php?token=' . urlencode($token);
         $subject = 'Your ' . APP_NAME . ' sign-in link';
         $body = '<p>Click the link below to sign in. It works once and expires in 30 minutes.</p>'
               . '<p><a href="' . htmlspecialchars($link) . '" style="display:inline-block;padding:12px 22px;'

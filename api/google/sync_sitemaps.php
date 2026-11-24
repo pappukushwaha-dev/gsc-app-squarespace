@@ -284,11 +284,41 @@ function gsc_sync_write_rows(
         }
     }
 
+    // -----------------------------------------------------------------
+    // 2026-11-24 (ported from Wix): when the site lives under a path
+    // (example.com/shop), remove rows on the SAME host but outside that
+    // path — another site's sitemaps copied in by the old host-only
+    // property lookup. Other hosts are never touched. No-op for sites
+    // without a path.
+    // -----------------------------------------------------------------
+    $foreignRemoved = 0;
+    $siteKey = gsc_sync_norm_key(rtrim($domainForDb, '/'));
+    [$siteHost, $sitePath] = array_pad(explode('/', $siteKey, 2), 2, '');
+
+    if ($sitePath !== '') {
+        try {
+            $list = $pdo->prepare("SELECT id, sitemap_url FROM sitemaps WHERE shop_id = ?");
+            $list->execute([$shopId]);
+            $del = $pdo->prepare("DELETE FROM sitemaps WHERE shop_id = ? AND id = ?");
+
+            foreach ($list->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                [$h, $p] = array_pad(explode('/', gsc_sync_norm_key((string)$r['sitemap_url']), 2), 2, '');
+                if ($h === $siteHost && strpos($p . '/', $sitePath . '/') !== 0) {
+                    $del->execute([$shopId, $r['id']]);
+                    $foreignRemoved += $del->rowCount();
+                }
+            }
+        } catch (Throwable $e) {
+            error_log('sync_sitemaps.php foreign-path cleanup failed: ' . $e->getMessage());
+        }
+    }
+
     return [
         'total'    => count($synced),
         'inserted' => $inserted,
         'updated'  => $updated,
         'pruned'   => $pruned,
+        'foreign_removed' => $foreignRemoved,
         'sitemaps' => $synced,
     ];
 }

@@ -63,7 +63,7 @@ class StoreManager
     /* ------------------------------------------------------------
        STORE LIST
     ------------------------------------------------------------ */
-    public static function getFilteredStores(string $search = '', int $perPage = 10, int $page = 1): array
+    public static function getFilteredStores(string $search = '', int $perPage = 10, int $page = 1, array $filters = []): array
     {
         self::assertPdo();
 
@@ -96,9 +96,9 @@ class StoreManager
         $conditions = [];
 
         if (strtolower($search) === 'active') {
-            $conditions[] = "ws.event_type = 'install'";
+            $conditions[] = "IFNULL(ws.is_active, 0) = 1"; // 2026-11-24: event_type is NULL/'installed' on some platforms
         } elseif (strtolower($search) === 'inactive') {
-            $conditions[] = "ws.event_type = 'uninstall'";
+            $conditions[] = "IFNULL(ws.is_active, 0) = 0";
         } elseif ($search !== '') {
             $q = self::$pdo->quote('%' . $search . '%');
             $conditions[] = "
@@ -108,6 +108,11 @@ class StoreManager
                 OR ga.email LIKE $q)
             ";
         }
+
+        // 2026-11-24: Wix-style filters (status, plan status, plan name, install date) - /var/www/html/_shared/admin_store_filters.php
+        require_once '/var/www/html/_shared/admin_store_filters.php';
+        [$sfConds, $sfParams] = gsc_sf_where($filters, 'shop_id', 'ws.shop_id', 'ws.created_at', 'ws.is_active');
+        $conditions = array_merge($conditions, $sfConds);
 
         // Combine conditions
         if (!empty($conditions)) {
@@ -122,7 +127,7 @@ class StoreManager
         ";
 
         $stmt = self::$pdo->prepare($sql);
-        $stmt->execute();
+        $stmt->execute($sfParams);
 
         $stores = $stmt->fetchAll(PDO::FETCH_ASSOC);
         if (!$stores) return [];
@@ -130,11 +135,12 @@ class StoreManager
         // Add status_label and plan_name safely
         $shopIds = array_column($stores, 'shop_id');
         $trialMap = self::buildTrialMap($shopIds);
+        $planLabels = gsc_sf_plan_labels(self::$pdo, 'shop_id', $shopIds);
 
         foreach ($stores as &$store) {
             $iid = $store['shop_id'];
-            $store['status_label'] = (($store['event_type'] == 'install' ? 'Active' : 'Inactive'));
-            $store['plan_name'] = isset($trialMap[$iid]) ? 'Trial' : (self::getSubscriptionPlan($iid) ?: 'No Plan');
+            $store['status_label'] = ((int)($store['is_active'] ?? 0) === 1) ? 'Active' : 'Inactive';
+            $store['plan_name'] = $planLabels[$iid]['label'] ?? 'No Plan';
         }
 
         return $stores;
@@ -143,7 +149,7 @@ class StoreManager
     /* ------------------------------------------------------------
        TOTAL COUNT
     ------------------------------------------------------------ */
-    public static function getTotalStores(string $search = ''): int
+    public static function getTotalStores(string $search = '', array $filters = []): int
     {
         self::assertPdo();
 
@@ -157,9 +163,9 @@ class StoreManager
         $conditions = [];
 
         if (strtolower($search) === 'active') {
-            $conditions[] = "ws.event_type = 'install'";
+            $conditions[] = "IFNULL(ws.is_active, 0) = 1"; // 2026-11-24: event_type is NULL/'installed' on some platforms
         } elseif (strtolower($search) === 'inactive') {
-            $conditions[] = "ws.event_type = 'uninstall'";
+            $conditions[] = "IFNULL(ws.is_active, 0) = 0";
         } elseif ($search !== '') {
             $q = self::$pdo->quote('%' . $search . '%');
             $conditions[] = "
@@ -170,13 +176,18 @@ class StoreManager
             ";
         }
 
+        // 2026-11-24: Wix-style filters (status, plan status, plan name, install date) - /var/www/html/_shared/admin_store_filters.php
+        require_once '/var/www/html/_shared/admin_store_filters.php';
+        [$sfConds, $sfParams] = gsc_sf_where($filters, 'shop_id', 'ws.shop_id', 'ws.created_at', 'ws.is_active');
+        $conditions = array_merge($conditions, $sfConds);
+
         // Combine conditions
         if (!empty($conditions)) {
             $sql .= " WHERE " . implode(' AND ', $conditions);
         }
 
         $stmt = self::$pdo->prepare($sql);
-        $stmt->execute();
+        $stmt->execute($sfParams);
 
         return (int)$stmt->fetchColumn();
     }

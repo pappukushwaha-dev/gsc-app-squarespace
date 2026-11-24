@@ -6,6 +6,7 @@ header('Content-Type: application/json; charset=utf-8');
 // --- CRITICAL: THESE MUST BE CORRECT (leave as-is) ---
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/tickets_min.php';
+require_once '/var/www/html/_shared/ticket_guard.php'; ticket_guard('read'); // 2026-11-20 security
 // ----------------------------------------------------
 
 if (session_status() === PHP_SESSION_NONE) {

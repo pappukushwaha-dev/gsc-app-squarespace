@@ -3,6 +3,7 @@ declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/tickets_min.php';
+require_once '/var/www/html/_shared/ticket_guard.php'; ticket_guard('create'); // 2026-11-20 security
 
 // read body (JSON)
 $input = json_decode(file_get_contents('php://input'), true) ?: [];

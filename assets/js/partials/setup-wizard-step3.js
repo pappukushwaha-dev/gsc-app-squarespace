@@ -54,13 +54,15 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!submitOverlay) return;
         const el = submitOverlay.querySelector(`[data-step="${step}"]`);
         if (!el) return;
-        el.classList.remove("is-active", "is-done");
+        el.classList.remove("is-active", "is-done", "is-warn");
         if (state) el.classList.add(state);
     }
 
     function ovOpen() {
         if (!submitOverlay) return;
-        ["validate", "connect", "send", "process"].forEach(k => ovSet(k, null));
+        ["validate", "connect", "send", "process", "sync"].forEach(k => ovSet(k, null));
+        const syncLabel = submitOverlay.querySelector('[data-step="sync"] .s3x-stp-t');
+        if (syncLabel) syncLabel.textContent = "Syncing sitemap status";
         submitOverlay.classList.remove("hidden");
     }
 
@@ -417,7 +419,24 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         ovSet("process", "is-done");
-        setTimeout(ovClose, 400);
+
+        // 2026-11-24: pull Google's sitemap list and status into the app right
+        // after submitting, so the Sitemaps page is up to date without a manual
+        // Sync. A failed sync never turns a successful submit into a failure.
+        ovSet("sync", "is-active");
+        let synced = false;
+        try {
+            const syncRes = await postJson(`${window.APP_BASE}/api/google/sync_sitemaps.php`, { shopId });
+            synced = !!(syncRes && syncRes.success);
+        } catch (e) {
+            synced = false;
+        }
+        ovSet("sync", synced ? "is-done" : "is-warn");
+        if (!synced && submitOverlay) {
+            const syncLabel = submitOverlay.querySelector('[data-step="sync"] .s3x-stp-t');
+            if (syncLabel) syncLabel.textContent = "Sync will finish shortly";
+        }
+        setTimeout(ovClose, synced ? 400 : 1200);
 
         setStatus({ type: "success", text: "Sitemap submitted successfully!" });
         loadHistory();
@@ -425,7 +444,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const fd = new FormData();
         fd.append('step', '3');
-        fetch('/wix/googlesearchconsole/api/update-step.php', {
+        fetch(`${window.APP_BASE}/api/update-step.php`, {
             method: 'POST',
             body: fd,
             credentials: 'same-origin'

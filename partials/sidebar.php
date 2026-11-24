@@ -318,7 +318,7 @@ $faviconPath = $adminData['favicon_path'] ?? 'assets/images/logo-icon.png';
           </li>
 
           <li>
-            <a href="gsc-report.php?shop=<?= urlencode($shop) ?>&tab=pages" data-tab="intent_informational"
+            <a href="gsc-report.php?shop=<?= urlencode($shop) ?>&tab=pages" data-tab="pages"
               class="sidebar-tab-link block py-2 text-sm hover:text-blue-500 flex items-center gap-2">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

@@ -560,6 +560,9 @@ try {
     const menu = document.getElementById("propertyDropdownMenu");
     const arrow = document.getElementById("propertyArrow");
 
+    // The dropdown is only rendered when the store has a website URL; without
+    // this guard every page threw "Cannot read properties of null" here.
+    if (btn && menu && arrow) {
     btn.addEventListener("click", function(e) {
 
         e.stopPropagation();
@@ -583,4 +586,5 @@ try {
         e.stopPropagation();
 
     });
+    }
 </script>

@@ -20,7 +20,7 @@ $host   = $env('DB_HOST', '127.0.0.1');
 $port   = (string)($env('DB_PORT', '3306'));
 $name   = $env('DB_NAME', 'ecwid-googlesearchconsole');
 $user   = $env('DB_USER', 'root');
-$pass   = $env('DB_PASS', 'Makkpress@123AA');
+$pass   = $env('DB_PASS', 'Makkapps#789db@123AM');
 $socket = $env('DB_SOCKET', '');
 $debug  = ($env('APP_DEBUG', '0') === '1');
 

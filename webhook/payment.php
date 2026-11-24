@@ -19,7 +19,7 @@ if (!$endpointSecret) {
 
 function logToFile(string $label, $data): void
 {
-    $logFile = __DIR__ . '/stripe_webhook_debug.txt';
+    $logFile = '/var/www/private-logs/squarespace/googlesearchconsole/webhook/stripe_webhook_debug.txt';
 
     $entry = "============================\n";
     $entry .= date('Y-m-d H:i:s') . " | " . $label . "\n";

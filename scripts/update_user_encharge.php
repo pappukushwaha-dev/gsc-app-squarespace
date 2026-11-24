@@ -23,7 +23,7 @@ declare(strict_types=1);
 ini_set('display_errors', '1');
 error_reporting(E_ALL & ~E_DEPRECATED);
 
-$ENCHARGE_WRITE_KEY = 'n4ZJTpZktcyj32fQLBW555m4N';
+$ENCHARGE_WRITE_KEY = require __DIR__ . '/../includes/encharge_key.php'; // key lives in .env (2026-11-24)
 
 /* Public base of THIS app, for the pricing/review links.
    Confirm the path before first run. */
@@ -284,7 +284,7 @@ foreach ($users as $u) {
 
 
     @file_put_contents(
-        __DIR__ . '/update_user_encharge.log',
+        '/var/www/private-logs/squarespace/googlesearchconsole/scripts/update_user_encharge.log',
         date('Y-m-d H:i:s') . ' | ' . $email . ' | HTTP ' . $httpStatus . PHP_EOL,
         FILE_APPEND
     );

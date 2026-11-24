@@ -125,7 +125,7 @@ include './partials/layouts/layoutTop.php';
                                 d="M3 3h7l11 11-7 7L3 10V3z" />
                             <circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" />
                         </svg>
-                        Commercial/Ecommerce
+                        Growth Engine
                     </a>
                 </li>
 
@@ -159,7 +159,7 @@ include './partials/layouts/layoutTop.php';
                                 d="M4 5a2 2 0 012-2h12v16H6a2 2 0 01-2-2V5z" />
                             <path stroke-width="2" stroke-linecap="round" d="M8 3v16" />
                         </svg>
-                        Informational
+                        Lead Generator/Business
                     </a>
                 </li>
                 

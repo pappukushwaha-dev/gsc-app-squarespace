@@ -30,7 +30,7 @@
             <textarea id="global-ticket-message" class="form-control form-input w-full !mb-6 !mt-2" rows="3" placeholder="Type initial message"></textarea>
 
             <label class="text-base">Attachment (Optional)</label>
-            <input type="file" id="global-ticket-file" class="block w-full text-sm text-neutral-500 border rounded-lg cursor-pointer">
+            <input type="file" id="global-ticket-file" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.txt,application/pdf,image/png,image/jpeg,image/gif,image/webp,text/plain" class="block w-full text-sm text-neutral-500 border rounded-lg cursor-pointer">
 
             <div class="flex justify-center gap-2 pt-2">
                 <button id="global-ticket-submit" class="btn btn-cstm-primary">Submit Request</button>
@@ -40,6 +40,7 @@
         <div id="ticket-success-state" class="hidden text-center">
             <iconify-icon icon="mdi:check-circle-outline" class="text-success-600 text-[70px] mb-4 -mt-[24px]"></iconify-icon>
             <h3 class="text-xl font-semibold mb-2">Request Submitted Successfully</h3>
+            <p id="ticket-success-warning" class="hidden text-sm text-warning-700 bg-warning-50 border border-warning-200 rounded-lg px-3 py-2 mb-3"></p>
             <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
                 We’ve received your request. Our support team will get back to you within <strong>24 hours</strong>.
                 <br>
@@ -106,7 +107,28 @@
             modal.classList.add('hidden');
         }
 
+        /* SUP-03 (2026-11-24): the same rule the server enforces
+           (/var/www/ir-guards/upload_guard.php): pdf/png/jpg/jpeg/gif/webp/txt,
+           max 8 MB. Checked before anything is created, so an invalid file can
+           never produce a "submitted successfully" ticket. */
+        window.gscTicketFileError = window.gscTicketFileError || function (file) {
+            if (!file) return '';
+            const ext = (file.name.split('.').pop() || '').toLowerCase();
+            const ok  = ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'txt'];
+            if (file.name.indexOf('.') === -1 || !ok.includes(ext)) {
+                return 'This file type is not allowed. Please attach a PDF, PNG, JPG, GIF, WEBP or TXT file.';
+            }
+            if (file.size > 8 * 1024 * 1024) {
+                return 'This file is too large. The maximum attachment size is 8 MB.';
+            }
+            if (file.size === 0) {
+                return 'This file is empty. Please choose another file.';
+            }
+            return '';
+        };
+
         function clearForm() {
+            $id('ticket-success-warning')?.classList.add('hidden');
             if (fldSubject) fldSubject.value = '';
             if (fldMessage) fldMessage.value = '';
             if (fldFile) fldFile.value = null;
@@ -133,6 +155,17 @@
         $id('global-ticket-close')?.addEventListener('click', hideModal);
         $id('ticket-success-close')?.addEventListener('click', hideModal);
 
+        // Reject an invalid file the moment it is chosen and clear the field.
+        fldFile?.addEventListener('change', function() {
+            const err = window.gscTicketFileError(fldFile.files?.[0]);
+            if (err) {
+                fldFile.value = '';
+                ShowModalError(err);
+            } else {
+                hideModalError();
+            }
+        });
+
         if (btnSubmit) {
             btnSubmit.addEventListener('click', async function() {
                 const subject = fldSubject?.value.trim();
@@ -146,6 +179,14 @@
                     showAlert('Subject and message required.', 'error');
                     return;
                 }
+
+                const fileErr = window.gscTicketFileError(file);
+                if (fileErr) {
+                    if (fldFile) fldFile.value = '';
+                    ShowModalError(fileErr);
+                    return;
+                }
+                let uploadWarning = '';
 
                 btnSubmit.disabled = true;
                 const originalBtnText = btnSubmit.textContent;
@@ -202,8 +243,13 @@
                             method: 'POST',
                             body: fd
                         });
-                        const upJson = await upRes.json();
-                        if (upJson.success) attachmentInfo = upJson;
+                        const upJson = await upRes.json().catch(() => ({}));
+                        if (upJson.success) {
+                            attachmentInfo = upJson;
+                        } else {
+                            uploadWarning = 'Your request was submitted, but the attachment was not uploaded: '
+                                + String(upJson.error || upJson.message || 'upload failed').replace(/\.+$/, '') + '.';
+                        }
                     }
 
                     // 4) Send Email
@@ -224,6 +270,11 @@
                     // FINAL STEP: SWITCH TO SUCCESS STATE INSIDE MODAL
                     formState.classList.add('hidden');
                     successState.classList.remove('hidden');
+                    const warnEl = $id('ticket-success-warning');
+                    if (warnEl) {
+                        warnEl.textContent = uploadWarning;
+                        warnEl.classList.toggle('hidden', !uploadWarning);
+                    }
 
                     if (typeof window.TicketPopup.onSuccess === 'function') {
                         window.TicketPopup.onSuccess({

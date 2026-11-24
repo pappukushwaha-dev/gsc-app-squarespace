@@ -4,6 +4,7 @@ header('Content-Type: application/json; charset=utf-8');
 
 // Basic setup
 require_once __DIR__ . '/../includes/config.php'; // provides $pdo and session
+require_once '/var/www/ir-guards/upload_guard.php'; // IR 2026-11-20: auth + file-type guard
 // Ensure uploads dir is outside webroot and writable
 // You can set UPLOAD_DIR in config.php; otherwise default below:
 // $defaultUploadDir = __DIR__ . '/../uploads/ticket_attachments';

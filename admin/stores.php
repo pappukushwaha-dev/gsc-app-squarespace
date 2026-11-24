@@ -28,8 +28,19 @@ $perPage = isset($_GET['show']) ? (int) $_GET['show'] : 10;
 $currentPage = isset($_GET['page']) ? (int) $_GET['page'] : 1;
 $searchQuery = $_GET['search'] ?? '';
 
-$stores = StoreManager::getFilteredStores($searchQuery, $perPage, $currentPage);
-$totalStores = StoreManager::getTotalStores($searchQuery);
+// 2026-11-24: Wix-style filter bar (status, plan status, plan name, install date, export type)
+require_once '/var/www/html/_shared/admin_store_filters.php';
+$sfFilters = gsc_sf_read($_GET);
+// the Active / Inactive menu pages redirect here with ?search=active|inactive
+$sfLegacy = strtolower(trim((string) $searchQuery));
+if (in_array($sfLegacy, ['active', 'inactive'], true)) {
+    $sfFilters['status'] = $sfLegacy;
+    $searchQuery = '';
+}
+$sfList = array_merge($sfFilters, ['export_type' => 'all']); // export type only narrows the CSV
+
+$stores = StoreManager::getFilteredStores($searchQuery, $perPage, $currentPage, $sfList);
+$totalStores = StoreManager::getTotalStores($searchQuery, $sfList);
 $totalPages = max(1, (int) ceil($totalStores / $perPage));
 
 /**
@@ -41,6 +52,13 @@ function getBadgeClass($type, $value)
     $danger = 'bg-danger-100 text-danger-600 dark:bg-danger-600/20 dark:text-danger-400';
     $warning = 'bg-warning-100 text-warning-600 dark:bg-warning-600/20 dark:text-warning-400';
     $neutral = 'bg-neutral-100 text-neutral-600 dark:bg-neutral-600/20 dark:text-neutral-400';
+    if ($type === 'plan') { // 2026-11-24: labels come from gsc_sf_plan_labels()
+        $v = strtolower(trim((string) $value));
+        if (str_contains($v, 'cancelled') || str_contains($v, 'expired')) return $danger;
+        if (str_contains($v, 'trial')) return $warning;
+        if ($v === 'free' || $v === 'no plan') return $neutral;
+        return $success;
+    }
 
     if ($type === 'status') {
         return (strtolower((string) $value) === 'active') ? $success : $danger;
@@ -75,6 +93,7 @@ function renderStoresTable($stores, $currentPage, $perPage, $totalStores, $total
 {
     ob_start();
     ?>
+    <span class="sf-total-src" data-total="<?= (int) $totalStores ?>" hidden></span>
 
     <div class="cstm-scroll-sm overflow-x-auto">
         <table class="table bordered-table sm-table table-auto text-sm">
@@ -323,60 +342,73 @@ if (!empty($_GET['ajax'])) {
     exit;
 }
 
-$script = <<<JS
+$script = <<<'JS'
 <script>
+// 2026-11-24: Wix-style filters (shared header from /var/www/html/_shared/admin_store_filters.php)
 $(document).ready(function () {
+    var searchTimeout = null;
+    var KEYS = ["show", "page", "search", "store_status", "plan_status", "plan_key", "date_from", "date_to"];
 
-    let searchTimeout = null;
-
-    function fetchStores(page = 1) {
-
-        let perPage = $("#per-page-select").val();
-        let search = $("#search-input").val().trim();
-
-        $.get("stores.php", {
+    function sfParams(page) {
+        return {
             ajax: 1,
-            show: perPage,
-            page: page,
-            search: search
-        }, function (html) {
+            show: $("#per-page-select").val(),
+            page: page || 1,
+            search: ($("#search-input").val() || "").trim(),
+            store_status: $("#store-status-select").val() || "all",
+            plan_status: $("#plan-status-select").val() || "all",
+            plan_key: $("#plan-name-select").val() || "all",
+            date_from: $("#date-from").val() || "",
+            date_to: $("#date-to").val() || ""
+        };
+    }
 
+    function fetchStores(page) {
+        var p = sfParams(page);
+        $.get("stores.php", p, function (html) {
             $(".stores-container-wrapper").html(html);
-
-            // Update URL
-            let newUrl = new URL(window.location.href);
-            newUrl.searchParams.set("show", perPage);
-            newUrl.searchParams.set("page", page);
-
-            if (search) newUrl.searchParams.set("search", search);
-            else newUrl.searchParams.delete("search");
-
-            window.history.pushState({}, "", newUrl);
+            var t = $(".stores-container-wrapper .sf-total-src").attr("data-total");
+            if (t !== undefined) $("#totalRecords").text(t);
+            var u = new URL(window.location.href);
+            KEYS.forEach(function (k) {
+                var v = String(p[k] === undefined ? "" : p[k]);
+                if (v === "" || v === "all") u.searchParams.delete(k); else u.searchParams.set(k, v);
+            });
+            window.history.pushState({}, "", u);
         });
     }
 
-    $("#search-input").on("keyup", function () {
-        // Clear previous timeout
-        clearTimeout(searchTimeout);
-        
-        // Set new timeout to debounce search
-        searchTimeout = setTimeout(function() {
-            fetchStores(1);
-        }, 300); // Wait 300ms after user stops typing
+    $("#exportData").on("click", function () {
+        var p = sfParams(1);
+        delete p.ajax; delete p.show; delete p.page;
+        p.export_type = $("#export-type").val() || "all";
+        p.export = 1;
+        window.location.href = "./core/StoreExport.php?" + $.param(p);
     });
 
-    $("#per-page-select").on("change", function () {
+    $("#reset-filters").on("click", function () {
+        $("#search-input").val("");
+        $("#per-page-select").val("10");
+        $("#store-status-select, #plan-status-select, #plan-name-select, #export-type").val("all");
+        $("#date-from, #date-to").val("");
+        fetchStores(1);
+    });
+
+    $("#search-input").on("keyup", function () {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(function () { fetchStores(1); }, 300);
+    });
+
+    $("#per-page-select, #plan-status-select, #plan-name-select, #date-from, #date-to").on("change", function () {
         fetchStores(1);
     });
 
     $(document).on("click", ".pagination .page-link", function (e) {
         e.preventDefault();
-        let page = $(this).data("page");
+        var page = $(this).data("page");
         if (page) fetchStores(page);
     });
-
 });
-
 </script>
 JS;
 
@@ -387,25 +419,15 @@ include './partials/layouts/layoutTop.php';
     <div class="col-span-12">
         <div class="card h-full p-0 rounded-xl border-0 overflow-hidden">
 
-            <div
-                class="card-header border-b border-neutral-200 dark:border-neutral-600 bg-white dark:bg-neutral-700 py-4 px-6 flex items-center justify-between">
-                <div class="flex items-center gap-3 overflow-x-auto">
-                    <span class="text-base font-medium text-secondary-light">Show</span>
-
-                    <select id="per-page-select"
-                        class="form-select form-select-sm w-auto dark:bg-neutral-600 dark:text-white">
-                        <option value="10" <?= ($perPage == 10) ? 'selected' : '' ?>>10</option>
-                        <option value="25" <?= ($perPage == 25) ? 'selected' : '' ?>>25</option>
-                        <option value="50" <?= ($perPage == 50) ? 'selected' : '' ?>>50</option>
-                        <option value="100" <?= ($perPage == 100) ? 'selected' : '' ?>>100</option>
-                    </select>
-
-                    <input type="text" id="search-input" class="h-10 w-auto navbar-search-input form-select"
-                        value="<?= htmlspecialchars((string) ($searchQuery ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>"
-                        placeholder="Search">
-
-                </div>
-            </div>
+            <?= gsc_sf_header_html([
+                'heading'     => 'Stores',
+                'total'       => $totalStores,
+                'search'      => $searchQuery,
+                'per_page'    => $perPage,
+                'filters'     => $sfFilters,
+                'dates'       => true,
+                'export_type' => true,
+            ]) ?>
 
             <div class="card-body p-6 stores-container-wrapper">
                 <?= renderStoresTable($stores, $currentPage, $perPage, $totalStores, $totalPages, $searchQuery) ?>

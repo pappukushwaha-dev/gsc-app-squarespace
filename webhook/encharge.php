@@ -17,7 +17,7 @@ $rawPayload = file_get_contents('php://input');
 
 // Log payload
 file_put_contents(
-    __DIR__ . '/encharge_webhook_log.txt',
+    '/var/www/private-logs/squarespace/googlesearchconsole/webhook/encharge_webhook_log.txt',
     "==== " . date('Y-m-d H:i:s') . " ====\n" . $rawPayload . "\n\n",
     FILE_APPEND
 );
@@ -160,7 +160,7 @@ try {
 } catch (Throwable $e) {
     // Never fail webhook
     file_put_contents(
-        __DIR__ . '/encharge_error_log.txt',
+        '/var/www/private-logs/squarespace/googlesearchconsole/webhook/encharge_error_log.txt',
         date('Y-m-d H:i:s') . ' - ' . $e->getMessage() . "\n",
         FILE_APPEND
     );

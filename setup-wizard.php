@@ -38,6 +38,16 @@ $step = $_GET['step'] ?? '1';
 if (!in_array($step, ['1', '2', '3'], true)) {
     $step = '1';
 }
+
+// S3-05 (2026-11-24): a step cannot be opened ahead of the first pending
+// one (e.g. ?step=3 typed into the URL before Google is connected or the
+// domain is verified) - send the user to the step they actually need.
+require_once __DIR__ . '/includes/wizard_gate.php';
+$wizPending = gscWizardFirstPendingStep($pdo, (string)$shopId);
+if ($wizPending !== null && (int)$step > $wizPending) {
+    header('Location: setup-wizard.php?' . http_build_query(array_merge($_GET, ['step' => (string)$wizPending])));
+    exit;
+}
 $steps = [
     '1' => ['label' => 'Step 1', 'title' => 'Connect Your Domain'],
     '2' => ['label' => 'Step 2', 'title' => 'Verify Domain or Add New'],
@@ -60,6 +70,20 @@ $siteStmt = $pdo->prepare("
 ");
 $siteStmt->execute([':iid' => $shopId]);
 $shopDomain = $siteStmt->fetchColumn();
+
+// Owner email for the support "Create Request" popup (never "N/A" when
+// the store row has one).
+$ownerEmail = '';
+$ownerLookupId = $shopId;
+if (!empty($ownerLookupId)) {
+    try {
+        $ownerStmt = $pdo->prepare("SELECT owner_email FROM SquarespaceSite WHERE shop_id = :iid LIMIT 1");
+        $ownerStmt->execute([':iid' => $ownerLookupId]);
+        $ownerEmail = trim((string)($ownerStmt->fetchColumn() ?: ''));
+    } catch (Throwable $e) {
+        error_log('[setup-wizard] owner email lookup failed: ' . $e->getMessage());
+    }
+}
 if ($shopDomain) {
     $siteUrl = 'https://' . $shopDomain;
 }
@@ -217,7 +241,7 @@ include __DIR__ . '/partials/ticket-submit-popup.php';
 
             // ✅ Owner email from DB
             window.TicketPopup.setOwnerEmail(
-                <?= json_encode($ownerEmail ?? 'N/A') ?>
+                <?= json_encode(($ownerEmail ?? '') !== '' ? $ownerEmail : 'N/A') ?>
             );
 
             supportBtn.addEventListener('click', () => {
@@ -231,5 +255,5 @@ include __DIR__ . '/partials/ticket-submit-popup.php';
 <?php elseif ($step === '2'): ?>
     <script src="<?= APP_BASE ?>/assets/js/partials/setup-wizard-step2.js"></script>
 <?php else: ?>
-    <script src="<?= APP_BASE ?>/assets/js/partials/setup-wizard-step3.js"></script>
+    <script src="<?= APP_BASE ?>/assets/js/partials/setup-wizard-step3.js?v=20261124"></script>
 <?php endif; ?>

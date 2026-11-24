@@ -6,6 +6,7 @@ error_reporting(E_ALL & ~E_DEPRECATED);
 ini_set('display_errors', 1);
 
 require_once __DIR__ . '/../../includes/config.php';
+require_once __DIR__ . '/SessionManager.php'; require_once __DIR__ . '/AuthController.php'; SessionManager::startDatabaseSession(); if (!AuthController::isAuthenticated()) { http_response_code(403); header('Content-Type: application/json'); echo json_encode(['success' => false, 'error' => 'Forbidden']); exit; } // 2026-11-20 security: admin only
 
 /* ================= SAFETY CHECK ================= */
 if (!isset($pdo)) {

@@ -28,7 +28,9 @@ try {
     // 🔹 Pass shop_id via OAuth state
     // ---------------------------------------------------
 $_SESSION['google_oauth_instance'] = $shopId;
-$client->setState($shopId);
+// IR 2026-11-23: random one-time state (CSRF); the shop comes back from the session, never from the URL
+$_SESSION['google_oauth_state'] = bin2hex(random_bytes(24));
+$client->setState($_SESSION['google_oauth_state']);
 
     // ---------------------------------------------------
     // Google OAuth Settings
